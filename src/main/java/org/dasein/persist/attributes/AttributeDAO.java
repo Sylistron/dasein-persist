@@ -47,7 +47,7 @@ public class AttributeDAO {
     }
 
     public void saveAttributes(Transaction xaction, Class tc, String tcid, Class oc, String ocid, AttributeMap attrs) throws PersistenceException {
-        Map<String,Object> state = new HashMap<String,Object>();
+        Map<String,Object> state = new HashMap<String,Object>(6);
 
         state.put(TYPE_CLASS, tc.getName());
         state.put(TYPE_ID, tcid);
@@ -60,7 +60,7 @@ public class AttributeDAO {
     }
 
     public void saveTypes(Transaction xaction, Class tc, String tcid, DataTypeMap types) throws PersistenceException {
-        Map<String,Object> state = new HashMap<String,Object>();
+        Map<String,Object> state = new HashMap<String,Object>(3);
         
         state.put(TYPE_CLASS, tc.getName());
         state.put(TYPE_ID, tcid);
@@ -73,7 +73,7 @@ public class AttributeDAO {
         Transaction xaction = Transaction.getInstance();
         
         try {
-            Map<String,Object> state = new HashMap<String,Object>();
+            Map<String,Object> state = new HashMap<String,Object>(2);
     
             state.put(OWNER_ID, oid);
             state.put(OWNER_CLASS, cls.getName());
@@ -101,7 +101,7 @@ public class AttributeDAO {
     }
 
     public DataTypeMap loadTypes(Transaction xaction, Class cls, String oid) throws PersistenceException {
-        Map<String,Object> state = new HashMap<String,Object>();
+        Map<String,Object> state = new HashMap<String,Object>(2);
         
         state.put(TYPE_ID, oid);
         state.put(TYPE_CLASS, cls.getName());
@@ -110,7 +110,7 @@ public class AttributeDAO {
     }
     
     public void removeAttributes(Transaction xaction, Class cls, String oid) throws PersistenceException {
-        Map<String,Object> state = new HashMap<String,Object>();
+        Map<String,Object> state = new HashMap<String,Object>(2);
 
         state.put(OWNER_ID, oid);
         state.put(OWNER_CLASS, cls.getName());
@@ -118,7 +118,7 @@ public class AttributeDAO {
     }
     
     public void removeTypes(Transaction xaction, Class cls, String oid) throws PersistenceException {
-        Map<String,Object> state = new HashMap<String,Object>();
+        Map<String,Object> state = new HashMap<String,Object>(2);
         
         state.put(TYPE_ID, oid);
         state.put(TYPE_CLASS, cls.getName());
@@ -130,7 +130,7 @@ public class AttributeDAO {
     	Transaction xaction = Transaction.getInstance();
         
         try {
-	    	 Map<String,Object> state = new HashMap<String,Object>();
+	    	 Map<String,Object> state = new HashMap<String,Object>(3);
 	         
 	         state.put(OWNER_CLASS, cls);
 	         state.put(NAME, name);

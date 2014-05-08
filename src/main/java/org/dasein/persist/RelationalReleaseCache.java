@@ -98,6 +98,10 @@ public final class RelationalReleaseCache<T extends CachedItem> extends Persiste
             writeDataSource = readDataSource;
         }
     }
+    
+    public void setTranslationMethod(TranslationMethod translationMethod) {
+    	this.translationMethod = translationMethod;
+    }
 
     private Counter getCounter(SearchTerm[] whereTerms) {
         final SearchTerm[] terms = whereTerms;
