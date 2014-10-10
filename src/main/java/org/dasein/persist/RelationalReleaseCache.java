@@ -29,6 +29,7 @@ import org.dasein.persist.jdbc.Counter;
 import org.dasein.persist.jdbc.Creator;
 import org.dasein.persist.jdbc.Deleter;
 import org.dasein.persist.jdbc.Loader;
+import org.dasein.persist.jdbc.Replacer;
 import org.dasein.persist.jdbc.Updater;
 import org.dasein.persist.jdbc.AutomatedSql.Operator;
 import org.dasein.persist.jdbc.AutomatedSql.TranslationMethod;
@@ -147,6 +148,26 @@ public final class RelationalReleaseCache<T extends CachedItem> extends Persiste
         return creator;
     }
 
+    private Replacer getReplacer() {
+        final RelationalReleaseCache<T> self = this;
+        
+        Replacer replacer = new Replacer() {
+            public void init() {
+                setTarget(self.getEntityClassName());
+                switch (translationMethod) {
+                case CUSTOM: setCustomTranslating(); break;
+                case STANDARD: setTranslating(true); break;
+                case NONE: setTranslating(false); break;
+                }
+            }
+            
+            public boolean isReadOnly() {
+                return false;
+            }
+        };
+        return replacer;
+    }
+    
     private Deleter getDeleter(SearchTerm ... terms) {
         final SearchTerm[] killTerms = terms;
         final RelationalReleaseCache<T> self = this;
@@ -312,6 +333,21 @@ public final class RelationalReleaseCache<T extends CachedItem> extends Persiste
         return getCache().find(state);
     }
 
+    /**
+     * Replaces the specified object with the data provided in the specified state under
+     * the governance of the specified transaction.
+     * @param xaction the transaction governing this event
+     * @param state the new state for the new object
+     * @throws PersistenceException an error occurred talking to the data store, or
+     * creates are not supported
+     */
+    @Override
+    public T replace(Transaction xaction, Map<String,Object> state) throws PersistenceException {
+        state.put("--key--", getPrimaryKey().getFields()[0]);
+        xaction.execute(getReplacer(), state, writeDataSource);
+        return getCache().find(state);
+    }
+    
     @Override
     public Collection<T> find(SearchTerm[] terms, JiteratorFilter<T> filter, Boolean orderDesc, String ... orderFields) throws PersistenceException {
         logger.debug("enter - find(SearchTerm[], JiteratorFilter, Boolean, String)");

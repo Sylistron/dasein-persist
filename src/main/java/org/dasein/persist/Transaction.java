@@ -597,13 +597,22 @@ public class Transaction {
 
     private String connectionCloseLog() {
         String log = "DPTRANSID-" + transactionId + " connection.close - duration=" + (System.currentTimeMillis() - openTime) + "ms - stmt='";
-        String stmt = statements.peek();
-        if (stmt != null) {
-            if (stmt.length() < 100) {
-                log = log + stmt.substring(0,stmt.length());
-            } else {
-                log = log + stmt.substring(0,100);
-            }
+        
+        if (statements.isEmpty()) {
+        	return log + '\'';
+        }
+        
+        try {        
+	        String stmt = statements.peek();
+	        if (stmt != null) {
+	            if (stmt.length() < 100) {
+	                log = log + stmt.substring(0,stmt.length());
+	            } else {
+	                log = log + stmt.substring(0,100);
+	            }
+	        }
+        } catch (java.util.EmptyStackException e) {
+        	return log + '\'';
         }
         return log + '\'';
     }

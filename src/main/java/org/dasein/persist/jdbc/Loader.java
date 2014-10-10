@@ -413,9 +413,4 @@ public class Loader extends AutomatedSql {
         }
         return rs.getBigDecimal(i);
     }
-    
-    @Override
-	public boolean isReadOnly() {
-		return true;
-	}
 }

@@ -370,6 +370,8 @@ public abstract class PersistentCache<T extends CachedItem> {
     }
 
     public abstract T create(Transaction xaction, Map<String,Object> state) throws PersistenceException;
+    
+    public abstract T replace(Transaction xaction, Map<String,Object> state) throws PersistenceException;
 
     public Collection<T> find(SearchTerm ... terms) throws PersistenceException {
         return find(terms, null, false);
