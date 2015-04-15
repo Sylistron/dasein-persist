@@ -112,7 +112,7 @@ public final class RelationalReleaseCache<T extends CachedItem> extends Persiste
             public void init() {
                 setTarget(self.getEntityClassName());
                 if( terms != null && terms.length > 0 ) {
-                    ArrayList<Criterion> criteria = new ArrayList<Criterion>();
+                    ArrayList<Criterion> criteria = new ArrayList<Criterion>(terms.length);
 
                     for( SearchTerm term : terms ) {
                         criteria.add(new Criterion(term.getColumn(), term.getOperator()));
@@ -176,7 +176,7 @@ public final class RelationalReleaseCache<T extends CachedItem> extends Persiste
             public void init() {
                 setTarget(self.getEntityClassName());
                 if( killTerms != null && killTerms.length > 0 ) {
-                    ArrayList<Criterion> criteria = new ArrayList<Criterion>();
+                    ArrayList<Criterion> criteria = new ArrayList<Criterion>(killTerms.length);
 
                     for( SearchTerm term : killTerms ) {
                         criteria.add(new Criterion(term.getJoinEntity(), term.getColumn(), term.getOperator()));
@@ -211,7 +211,7 @@ public final class RelationalReleaseCache<T extends CachedItem> extends Persiste
                 setTarget(self.getEntityClassName());
                 setEntityJoins(getJoins());
                 if( terms != null && terms.length > 0 ) {
-                    ArrayList<Criterion> criteria = new ArrayList<Criterion>();
+                    ArrayList<Criterion> criteria = new ArrayList<Criterion>(terms.length);
 
                     for( SearchTerm term : terms ) {
                         criteria.add(new Criterion(term.getJoinEntity(), term.getColumn(), term.getOperator()));
@@ -219,7 +219,7 @@ public final class RelationalReleaseCache<T extends CachedItem> extends Persiste
                     setCriteria(criteria.toArray(new Criterion[criteria.size()]));
                 }
                 if( order != null && order.length > 0 ) {
-                    ArrayList<String> cols = new ArrayList<String>();
+                    ArrayList<String> cols = new ArrayList<String>(order.length);
                     boolean desc = order[0].descending;
 
                     for( OrderedColumn col : order ) {
@@ -278,7 +278,7 @@ public final class RelationalReleaseCache<T extends CachedItem> extends Persiste
                 Map<String,Object> results;
                 long count;
 
-                results = xaction.execute(counter, new HashMap<String,Object>(), readDataSource);
+                results = xaction.execute(counter, new HashMap<String,Object>(0), readDataSource);
                 count = ((Number)results.get("count")).longValue();
                 xaction.commit();
                 return count;
@@ -468,14 +468,13 @@ public final class RelationalReleaseCache<T extends CachedItem> extends Persiste
     }
 
     private Map<String,Object> toParams(SearchTerm ... searchTerms) {
-        HashMap<String,Object> params = new HashMap<String,Object>();
-
         if( searchTerms != null ) {
+        	HashMap<String,Object> params = new HashMap<String,Object>(searchTerms.length);
             for( SearchTerm term : searchTerms ) {
                 params.put(term.getColumn(), term.getValue());
             }
         }
-        return params;
+        return  new HashMap<String,Object>(0);
     }
 
     @SuppressWarnings("unchecked")

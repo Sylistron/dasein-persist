@@ -281,8 +281,8 @@ public abstract class PersistentCache<T extends CachedItem> {
 
     private ConcurrentMultiCache<T>                     cache           = null;
     private String                                      entityName      = null;
-    private Map<Class<? extends CachedItem>,EntityJoin> joins           = new HashMap<Class<? extends CachedItem>,EntityJoin>();
-    private Map<String,LookupDelegate>                  lookups         = new HashMap<String,LookupDelegate>();
+    private Map<Class<? extends CachedItem>,EntityJoin> joins           = new HashMap<Class<? extends CachedItem>,EntityJoin>(0);
+    private Map<String,LookupDelegate>                  lookups         = new HashMap<String,LookupDelegate>(0);
     private Key                                         primaryKey      = null;
     private SchemaMapper[]                              schemaMappers   = null;
     private String                                      schemaVersion   = null;
@@ -477,7 +477,7 @@ public abstract class PersistentCache<T extends CachedItem> {
     }
 
     protected Set<String> getKeyValues(int index, SearchTerm ... forTerms) {
-        HashSet<String> list = new HashSet<String>();
+        HashSet<String> list = new HashSet<String>(0);
         SearchTerm term = forTerms[index];
         Object searchValue = term.getValue();
         String keyValue;
@@ -1090,7 +1090,7 @@ public abstract class PersistentCache<T extends CachedItem> {
     }
     
     protected String toDataStoreJSONFromCurrentState(Map<String,Object> state) {
-        HashMap<String,Object> friendlyState = new HashMap<String,Object>();
+        HashMap<String,Object> friendlyState = new HashMap<String,Object>(0);
         Class<? extends Object> t = getTarget();
         
         while( !t.equals(Object.class) ) {
@@ -1259,7 +1259,7 @@ public abstract class PersistentCache<T extends CachedItem> {
     }
 
     private @Nonnull JSONObject autoJSON(@Nonnull Object ob) {
-        HashMap<String,Object> json = new HashMap<String, Object>();
+        HashMap<String,Object> json = new HashMap<String, Object>(0);
         Class<?> cls = ob.getClass();
 
         while( !(cls.getName().equals(Object.class.getName())) ) {
@@ -1335,7 +1335,7 @@ public abstract class PersistentCache<T extends CachedItem> {
 
     protected Map<String,Object> toMapFromJSON(String json) throws PersistenceException {
         try {
-            HashMap<String,Object> values = new HashMap<String,Object>();
+            HashMap<String,Object> values = new HashMap<String,Object>(0);
             JSONObject j = new JSONObject(json);
             Class<T> targetClass = getTarget();
             Class<? extends Object> t = targetClass;
@@ -1472,7 +1472,7 @@ public abstract class PersistentCache<T extends CachedItem> {
     
     public void updateAll(Transaction xaction, Map<String,Object> state, SearchTerm ... terms) throws PersistenceException {
         for( T item : find(terms) ) {
-            Map<String,Object> copy = new HashMap<String,Object>();
+            Map<String,Object> copy = new HashMap<String,Object>(state.size());
             
             copy.putAll(state);
             update(xaction, item, copy);

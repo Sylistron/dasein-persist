@@ -84,8 +84,8 @@ public class LoadTypes extends Execution {
     static private final int TYPE_ID       = 9;
     
     public Map<String,Object> run(Transaction xaction, Map<String,Object> params) throws PersistenceException, SQLException {
-        Map<String,DataType<?>> types = new HashMap<String,DataType<?>>();
-        Map<String,Object> map = new HashMap<String,Object>();
+        Map<String,DataType<?>> types = new HashMap<String,DataType<?>>(0);
+        Map<String,Object> map = new HashMap<String,Object>(0);
         String cname = (String)params.get(AttributeDAO.TYPE_CLASS);
         String id = (String)params.get(AttributeDAO.TYPE_ID);
         

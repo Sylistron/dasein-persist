@@ -118,7 +118,7 @@ public class LoadAttributes extends Execution {
     
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public Map<String, Object> run(Transaction xaction, Map<String,Object> params) throws PersistenceException, SQLException {
-        HashMap<String,Object> attributes = new HashMap<String,Object>();
+        HashMap<String,Object> attributes = new HashMap<String,Object>(0);
         String cname = (String)params.get(AttributeDAO.OWNER_CLASS);
         String id = (String)params.get(AttributeDAO.OWNER_ID);
 
