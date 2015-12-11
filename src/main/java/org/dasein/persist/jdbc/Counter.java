@@ -30,6 +30,9 @@ import org.dasein.persist.PersistenceException;
 import org.dasein.persist.Transaction;
 
 public class Counter extends AutomatedSql {
+	
+	public static String COUNT = "count";
+	
     private String                   sql        = null;
     
     public Counter() {
@@ -75,17 +78,17 @@ public class Counter extends AutomatedSql {
     }
     
     public Map<String,Object> run(Transaction xaction, Map<String,Object> params) throws SQLException, PersistenceException {
-        HashMap<String,Object> map = new HashMap<String,Object>();
+        HashMap<String,Object> map = new HashMap<String,Object>(1);
         
         prepare(params);
         ResultSet results = statement.executeQuery();
         
         try {
             if( results.next() ) {
-                map.put("count", results.getLong(1));
+                map.put(COUNT, results.getLong(1));
             }
             else {
-                map.put("count", 0);
+                map.put(COUNT, 0);
             }
         }
         finally {

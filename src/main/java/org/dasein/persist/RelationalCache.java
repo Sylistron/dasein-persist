@@ -40,7 +40,7 @@ import org.dasein.util.JitCollection;
 import org.dasein.util.Jiterator;
 import org.dasein.util.JiteratorFilter;
 
-public final class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
+public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
     static public final Logger logger = Logger.getLogger(RelationalCache.class);
 
     static public class OrderedColumn {

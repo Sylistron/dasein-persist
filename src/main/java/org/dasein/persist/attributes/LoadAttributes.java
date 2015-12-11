@@ -177,7 +177,7 @@ public class LoadAttributes extends Execution {
                     ArrayList<Object> list = (ArrayList<Object>)attributes.get(attr);
                     
                     if( list == null ) {
-                        list = new ArrayList<Object>();
+                        list = new ArrayList<Object>(0);
                         attributes.put(attr, list);
                     }
                     if( ml ) {

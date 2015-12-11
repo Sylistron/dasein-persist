@@ -173,8 +173,8 @@ public class Loader extends AutomatedSql {
     }
     
     public Map<String,Object> run(Transaction xaction, Map<String,Object> params) throws SQLException, PersistenceException {
-        ArrayList<Map<String,Object>> list = new ArrayList<Map<String,Object>>();
-        HashMap<String,Object> map = new HashMap<String,Object>();
+        ArrayList<Map<String,Object>> list = new ArrayList<Map<String,Object>>(0);
+        HashMap<String,Object> map = new HashMap<String,Object>(0);
         int count = getColumns().size();
         long startTimestamp = System.currentTimeMillis();
         
@@ -185,7 +185,7 @@ public class Loader extends AutomatedSql {
 
         try {
             while( results.next() ) {
-                HashMap<String,Object> state = new HashMap<String,Object>();
+                HashMap<String,Object> state = new HashMap<String,Object>(count);
                 
                 for( int i=1; i<=count; i++) {
                     Object ob = getValue(getColumns().get(i-1), i, results);

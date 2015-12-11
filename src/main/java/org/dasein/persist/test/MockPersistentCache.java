@@ -28,6 +28,7 @@ import org.dasein.util.JiteratorFilter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -65,8 +66,15 @@ public class MockPersistentCache<T extends CachedItem> extends PersistentCache<T
             return item;
         }
     }
-
+    
     @Override
+	public T replace(Transaction xaction, Map<String, Object> state)
+			throws PersistenceException {
+    	return create(xaction, state);
+    	
+	}
+
+	@Override
     public @Nonnull Collection<T> find(@Nonnull SearchTerm[] terms, @Nullable JiteratorFilter<T> filter, final @Nullable Boolean orderDesc, final @Nullable String... orderFields) throws PersistenceException {
         Collection<T> matches = new ArrayList<T>();
 

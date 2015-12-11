@@ -96,16 +96,16 @@ public class AutomatedSql extends Execution {
 
     static private final Logger logger = Logger.getLogger(AutomatedSql.class);
 
-    private ArrayList<String>        columns           = new ArrayList<String>();
-    private ArrayList<Criterion>     criteria          = new ArrayList<Criterion>();
+    private ArrayList<String>        columns           = new ArrayList<String>(0);
+    private ArrayList<Criterion>     criteria          = new ArrayList<Criterion>(0);
     private Map<Class<? extends CachedItem>,EntityJoin> entityJoins = null;
     private Join                     join              = Join.AND;
     private String                   table             = null;
     private Class<?>                 target            = null;
     private TranslationMethod        translationMethod = TranslationMethod.NONE;
-    private Collection<String>       translators       = new ArrayList<String>();
-    private HashMap<String,Class<?>> types             = new HashMap<String,Class<?>>();
-    private HashMap<String,ParameterizedType> ptypes             = new HashMap<String,ParameterizedType>();
+    private Collection<String>       translators       = new ArrayList<String>(0);
+    private HashMap<String,Class<?>> types             = new HashMap<String,Class<?>>(0);
+    private HashMap<String,ParameterizedType> ptypes   = new HashMap<String,ParameterizedType>(0);
     
     public AutomatedSql() {
         init();

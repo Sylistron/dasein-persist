@@ -732,8 +732,15 @@ public class RiakCache<T extends CachedItem> extends PersistentCache<T> {
             }
         }
     }
-
+    
     @Override
+	public T replace(Transaction xaction, Map<String, Object> state)
+			throws PersistenceException {
+		//TODO implement replace
+    	throw new UnsupportedOperationException("replace is not implemented");
+	}
+
+	@Override
     public @Nonnull Collection<T> find(@Nonnull SearchTerm[] terms, @Nullable final JiteratorFilter<T> filter, @Nullable Boolean orderDesc, @Nullable String... orderFields) throws PersistenceException {
         return (Collection<T>)execFind(false, terms, filter, orderDesc, orderFields);
     }

@@ -66,6 +66,7 @@ import com.google.code.hs4j.impl.HSClientImpl;
  * @see https://github.com/ahiguti/HandlerSocket-Plugin-for-MySQL/blob/master/docs-en/protocol.en.txt
  * @see http://code.google.com/p/hs4j/wiki/GettingStarted
  */
+@Deprecated
 public class HandlerSocketCache<T extends CachedItem> extends PersistentCache<T> {
 	static public final Logger logger = Logger.getLogger(HandlerSocketCache.class);
 	
@@ -142,8 +143,15 @@ public class HandlerSocketCache<T extends CachedItem> extends PersistentCache<T>
 	@Override
 	public T create(Transaction xaction, Map<String, Object> state)
 			throws PersistenceException {
-		// TODO Auto-generated method stub
-		return null;
+		//TODO implement replace
+    	throw new UnsupportedOperationException("create is not implemented");
+	}
+	
+	@Override
+	public T replace(Transaction xaction, Map<String, Object> state)
+			throws PersistenceException {
+		//TODO implement replace
+    	throw new UnsupportedOperationException("replace is not implemented");
 	}
 
 	/**
