@@ -314,24 +314,31 @@ public abstract class Execution {
             return (HashMap<String,Object>)r;
         }
         else {
-            HashMap<String,Object> tmp = new HashMap<String,Object>();
+            HashMap<String,Object> tmp = new HashMap<String,Object>(r.size());
             
             tmp.putAll(r);
             return tmp;
         }
     }
     
-    /*
-    Map<String,Object> executeEvent(Transaction trans, Map<String,Object> args) throws PersistenceException {
-        return executeEvent(trans, args, null);
+    /**
+     * Intended for sub-classes to provide their own caching mechanism.
+     * 
+     * @param sql The statement to use to help lookup a result.
+     * @param args The values we are preparing the statement with, also useful for looking up a cache result.
+     * @return The cached items or null for nothing in the cache.
+     * @throws PersistenceException Thrown if there's a problem.
+     */
+    public Map<String,Object> retrieveFromCache(String sql, Map<String,Object> args) throws PersistenceException {
+    	return null; // no-op
     }
-    */
     
     Map<String,Object> executeEvent(Transaction trans, Map<String,Object> args, StringBuilder statementHolder) throws PersistenceException {
         logger.debug("enter - execute(Transaction, Map)");
         state = "EXECUTING";
         try {
-            if( logger.isDebugEnabled() ) {
+        	
+        	if( logger.isDebugEnabled() ) {
                 logger.debug("Getting connection from transaction: " + trans.getTransactionId());
             }
             connection = trans.getConnection();
@@ -340,9 +347,16 @@ public abstract class Execution {
                 String sql = loadStatement(connection, args);
                 
                 // let's check our cache for results
+                Map<String,Object> res = retrieveFromCache(sql, args);
                 
-                
-                Map<String,Object> res;
+                if (res != null) {
+                	try {
+                		return res;
+                	} finally {
+                        try { statement.close(); statement = null; }
+                        catch( Throwable ignore ) { }
+                    }
+                }
                 
                 if( logger.isDebugEnabled() ) {
                     logger.debug("Preparing: " + sql);
