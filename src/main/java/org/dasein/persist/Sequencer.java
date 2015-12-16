@@ -23,9 +23,9 @@ package org.dasein.persist;
 // J2SE imports
 import java.io.InputStream;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 // Apache imports
 import org.apache.log4j.Logger;
@@ -73,7 +73,7 @@ public abstract class Sequencer {
     /**
      * All sequencers currently in memory.
      */
-    static private final Map<String,Sequencer>      sequencers       = new HashMap<String,Sequencer>();
+    static private final Map<String,Sequencer>      sequencers       = new ConcurrentHashMap<String,Sequencer>(0);
 
     /**
      * Loads the sequencers from the dasein-persistence.properties
@@ -147,24 +147,24 @@ public abstract class Sequencer {
             if( seq != null ) {
                 return seq;
             }
-            synchronized( sequencers ) {
-                // redundant due to the non-synchronized calls above done for performance
-                if( !sequencers.containsKey(name) ) {
-                    try {
-                        seq = defaultSequencer.newInstance();
-                    }
-                    catch( Exception e ) {
-                        logger.error(e.getMessage(), e);
-                        return null;
-                    }
-                    seq.setName(name);
-                    sequencers.put(name, seq);
-                    return seq;
+            
+            // redundant due to the non-synchronized calls above done for performance
+            if( !sequencers.containsKey(name) ) {
+                try {
+                    seq = defaultSequencer.newInstance();
                 }
-                else {
-                    return sequencers.get(name);
+                catch( Exception e ) {
+                    logger.error(e.getMessage(), e);
+                    return null;
                 }
+                seq.setName(name);
+                sequencers.put(name, seq);
+                return seq;
             }
+            else {
+                return sequencers.get(name);
+            }
+            
         }
         finally {
             logger.debug("exit - getInstance()");

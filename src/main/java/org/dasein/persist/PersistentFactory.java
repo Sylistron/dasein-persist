@@ -36,6 +36,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 import org.dasein.persist.dao.LoadTranslator;
@@ -216,7 +217,7 @@ public final class PersistentFactory<T> {
     /**
      * A mapping of single attribute counters to the query associated with them.
      */
-    private HashMap<String,Class<? extends Execution>> counters     = new HashMap<String,Class<? extends Execution>>();
+    private ConcurrentHashMap<String,Class<? extends Execution>> counters     = new ConcurrentHashMap<String,Class<? extends Execution>>(0);
     /**
      * The class of an update execution, if any.
      */
@@ -227,17 +228,17 @@ public final class PersistentFactory<T> {
     private DependencyManager<T>                       dependency   = null;
     private ExportHook<T>                              exportHook   = null;
     private ImportHook<T>                              importHook   = null;
-    private HashMap<String,Class<? extends Execution>> joins        = new HashMap<String,Class<? extends Execution>>();
-    private HashMap<String,Class<? extends Execution>> joinCounters = new HashMap<String,Class<? extends Execution>>();
+    private ConcurrentHashMap<String,Class<? extends Execution>> joins        = new ConcurrentHashMap<String,Class<? extends Execution>>(0);
+    private ConcurrentHashMap<String,Class<? extends Execution>> joinCounters = new ConcurrentHashMap<String,Class<? extends Execution>>(0);
     private String                                     key          = null;
     /**
      * A mapping of single attribute searches to the query associated with them.
      */
-    private HashMap<String,Class<? extends Execution>> searches     = new HashMap<String,Class<? extends Execution>>();
+    private ConcurrentHashMap<String,Class<? extends Execution>> searches     = new ConcurrentHashMap<String,Class<? extends Execution>>(0);
     /**
      * A mapping of unique ID searches to the query associated with them.
      */
-    private HashMap<String,Class<? extends Execution>> singletons = new HashMap<String,Class<? extends Execution>>();
+    private ConcurrentHashMap<String,Class<? extends Execution>> singletons = new ConcurrentHashMap<String,Class<? extends Execution>>(0);
     /**
      * The class of an update execution, if any.
      */
@@ -1218,15 +1219,13 @@ public final class PersistentFactory<T> {
             String key = getExecKey(terms, false);
             Map<String,Object> params = toParams(terms);
             
-            synchronized( this ) {
-                while( !counters.containsKey(key) ) {
-                	
-                    compileCounter(terms, counters);
-                    try { wait(1000L); }
-                    catch( InterruptedException ignore ) { /* ignore this */ }
-                }
-                cls = counters.get(key);
+            while( !counters.containsKey(key) ) {
+                compileCounter(terms, counters);
+                try { wait(1000L); }
+                catch( InterruptedException ignore ) { /* ignore this */ }
             }
+            cls = counters.get(key);
+            
             if( cls == null ) {
                 throw new PersistenceException("Unable to compile a default counter for field: " + field);
             }
@@ -1243,14 +1242,13 @@ public final class PersistentFactory<T> {
             Class<? extends Execution> cls;
             String key = getExecKey(terms, false);
                         
-            synchronized( this ) {
-                while( !counters.containsKey(key) ) {
-                    compileCounter(terms, counters);
-                    try { wait(1000L); }
-                    catch( InterruptedException ignore ) { /* ignore this */ }
-                }
-                cls = counters.get(key);
-            }        
+            while( !counters.containsKey(key) ) {
+                compileCounter(terms, counters);
+                try { wait(1000L); }
+                catch( InterruptedException ignore ) { /* ignore this */ }
+            }
+            cls = counters.get(key);
+                    
             if( cls == null ) {
                 throw new PersistenceException("No support for counters on " + key);
             }
@@ -1302,16 +1300,16 @@ public final class PersistentFactory<T> {
         String jcn;
         
         jcn = jc.getName();
-        criteria = new HashMap<String,Object>();
+        criteria = new HashMap<String,Object>(1);
         criteria.put(key, val);
-        synchronized( this ) {
-            while( !joinCounters.containsKey(jcn) ) {
-                this.compileJoinCounter(jc, getKey(), key);
-                try { wait(1000L); }
-                catch( InterruptedException ignore ) { /* ignore this */ }
-            }
-            cls = joinCounters.get(jcn);
+        
+        while( !joinCounters.containsKey(jcn) ) {
+            this.compileJoinCounter(jc, getKey(), key);
+            try { wait(1000L); }
+            catch( InterruptedException ignore ) { /* ignore this */ }
         }
+        cls = joinCounters.get(jcn);
+        
         if( cls == null ) {
             throw new PersistenceException("Unable to compile a default join counter for: " + jcn);
         }
@@ -1328,13 +1326,13 @@ public final class PersistentFactory<T> {
      */
     public T create(Transaction xaction, Map<String,Object> state) throws PersistenceException {
         if( create == null ) {
-            synchronized( this ) {
-                while( create == null ) {
-                    compileCreator();
-                    try { wait(1000L); }
-                    catch( InterruptedException ignore ) { /* ignore this */ }
-                }
+            
+            while( create == null ) {
+                compileCreator();
+                try { wait(1000L); }
+                catch( InterruptedException ignore ) { /* ignore this */ }
             }
+            
         }
         state.put("--key--", getKey());
         xaction.execute(create, state);
@@ -1397,14 +1395,13 @@ public final class PersistentFactory<T> {
             Class<? extends Execution> cls;
             String key = getExecKey(terms, orderDesc, orderFields);
             
-            synchronized( this ) {
-                while( !searches.containsKey(key) ) {
-                    compileLoader(terms, searches, orderDesc, orderFields);
-                    try { wait(1000L); }
-                    catch( InterruptedException ignore ) { /* ignore this */ }
-                }
-                cls = searches.get(key);
-            }        
+            while( !searches.containsKey(key) ) {
+                compileLoader(terms, searches, orderDesc, orderFields);
+                try { wait(1000L); }
+                catch( InterruptedException ignore ) { /* ignore this */ }
+            }
+            cls = searches.get(key);
+                    
             if( cls == null ) {
                 throw new PersistenceException("No support for searches on " + key);
             }
@@ -1425,14 +1422,13 @@ public final class PersistentFactory<T> {
             Class<? extends Execution> cls;
             SearchTerm[] terms;
             
-            synchronized( this ) {
-                while( !joins.containsKey(cname) ) {
-                    compileJoin(jc, getKey(), key);
-                    try { wait(1000L); }
-                    catch( InterruptedException ignore ) { /* ignore this */ }
-                }
-                cls = joins.get(cname);
+            while( !joins.containsKey(cname) ) {
+                compileJoin(jc, getKey(), key);
+                try { wait(1000L); }
+                catch( InterruptedException ignore ) { /* ignore this */ }
             }
+            cls = joins.get(cname);
+       
             if( cls == null ) {
                 throw new PersistenceException("No support for joins on " + cname);
             }
@@ -1522,17 +1518,17 @@ public final class PersistentFactory<T> {
                     return list.iterator().next();
                 }
             };
-            synchronized( this ) {
-                while( !singletons.containsKey(id) ) {
-                    SearchTerm[] terms = new SearchTerm[1];
-                    
-                    terms[0] = new SearchTerm(id, Operator.EQUALS, val);
-                    compileLoader(terms, singletons, null);
-                    try { wait(100L); }
-                    catch( InterruptedException ignore ) { /* ignore this */ }
-                }
-                cls = singletons.get(id);
-            }            
+            
+            while( !singletons.containsKey(id) ) {
+                SearchTerm[] terms = new SearchTerm[1];
+                
+                terms[0] = new SearchTerm(id, Operator.EQUALS, val);
+                compileLoader(terms, singletons, null);
+                try { wait(100L); }
+                catch( InterruptedException ignore ) { /* ignore this */ }
+            }
+            cls = singletons.get(id);
+                     
             if( cls == null ) {
                 throw new PersistenceException("Queries on the field " + id + " will not return single values.");
             }
@@ -1667,7 +1663,7 @@ public final class PersistentFactory<T> {
     public Collection<T> list(Class<? extends Execution> cls) throws PersistenceException {
         logger.debug("enter - list(Class)");
         try {
-            HashMap<String,Object> criteria = new HashMap<String,Object>();
+            HashMap<String,Object> criteria = new HashMap<String,Object>(0);
         
             return find(cls, criteria);
         }
@@ -1677,7 +1673,7 @@ public final class PersistentFactory<T> {
     }
     
     private Map<String,Object> toParams(SearchTerm ... searchTerms) {
-        HashMap<String,Object> params = new HashMap<String,Object>();
+        HashMap<String,Object> params = new HashMap<String,Object>((searchTerms != null ? searchTerms.length : 0));
         
         for( SearchTerm term : searchTerms ) {
             params.put(term.getColumn(), term.getValue());
@@ -1788,8 +1784,8 @@ public final class PersistentFactory<T> {
             logger.debug("For: " + cache.getTarget().getName() + "/" + idstr);
         }
         try {
-            Map<String,Object> criteria = new HashMap<String,Object>();
-            Map<String,Translator<String>> map = new HashMap<String,Translator<String>>();
+            Map<String,Object> criteria = new HashMap<String,Object>(2);
+            Map<String,Translator<String>> map = new HashMap<String,Translator<String>>(0);
             Class<T> cls = cache.getTarget();
             
             criteria.put("ownerClass", cls);
@@ -1876,13 +1872,13 @@ public final class PersistentFactory<T> {
         Map<String,Object> keys = cache.getKeys(item);
         
         if( remove == null ) {
-            synchronized( this ) {
-                while( remove == null ) {
-                    compileDeleter();
-                    try { wait(1000L); }
-                    catch( InterruptedException ignore ) { /* ignore this */ }
-                }
+            
+            while( remove == null ) {
+                compileDeleter();
+                try { wait(1000L); }
+                catch( InterruptedException ignore ) { /* ignore this */ }
             }
+            
         }
         xaction.execute(remove, keys);
         if( dependency != null ) {
@@ -1892,7 +1888,7 @@ public final class PersistentFactory<T> {
     }
     
     public void removeTranslations(Transaction xaction, String idstr) throws PersistenceException {
-        Map<String,Object> state = new HashMap<String,Object>();
+        Map<String,Object> state = new HashMap<String,Object>(2);
         Class<T> cls = cache.getTarget();
         
         state.put("ownerClass", cls);
@@ -1901,7 +1897,7 @@ public final class PersistentFactory<T> {
     }
     
     public void saveTranslation(Transaction xaction, String idstr, String attr, Translator<String> val) throws PersistenceException {
-        Map<String,Object> state = new HashMap<String,Object>();
+        Map<String,Object> state = new HashMap<String,Object>(4);
         String cname = cache.getTarget().getName();
         
         state.put("ownerClass", cname);
@@ -2015,13 +2011,13 @@ public final class PersistentFactory<T> {
      */
     public void update(Transaction xaction, T item, Map<String,Object> state) throws PersistenceException {
         if( update == null ) {
-            synchronized( this ) {
-                while( update == null ) {
-                    compileUpdater();
-                    try { wait(1000L); }
-                    catch( InterruptedException ignore ) { /* ignore this */ }
-                }
+            
+            while( update == null ) {
+                compileUpdater();
+                try { wait(1000L); }
+                catch( InterruptedException ignore ) { /* ignore this */ }
             }
+            
         }        
         state.put("--key--", getKey());
         xaction.execute(update, state);

@@ -33,13 +33,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Stack;
+import java.util.concurrent.ConcurrentHashMap;
 
 // J2EE imports
 import javax.naming.NamingException;
 
 // Apache imports
 import org.apache.log4j.Logger;
-
 import org.dasein.persist.dao.LoadTranslator;
 import org.dasein.persist.dao.RemoveTranslator;
 import org.dasein.persist.dao.SaveTranslator;
@@ -64,9 +64,9 @@ public abstract class Execution {
     /**
      * Cache of execution instances.
      */
-    static private HashMap<String,Stack<Execution>> cache        = new HashMap<String,Stack<Execution>>();
+    static private ConcurrentHashMap<String,Stack<Execution>> cache        = new ConcurrentHashMap<String,Stack<Execution>>(0);
 
-    static private HashMap<String,String>           dataSources  = new HashMap<String,String>();
+    static private ConcurrentHashMap<String,String>           dataSources  = new ConcurrentHashMap<String,String>(0);
     
     /**
      * Loads the sequencers from the dasein-persistence.properties
@@ -159,14 +159,13 @@ public abstract class Execution {
         try {
             Stack<Execution> stack;
             
-            synchronized( cache ) {
-                if( !cache.containsKey(cls.getName()) ) {
-                    return cls.newInstance();
-                }
-                else {
-                    stack = cache.get(cls.getName());
-                }
+            if( !cache.containsKey(cls.getName()) ) {
+                return cls.newInstance();
             }
+            else {
+                stack = cache.get(cls.getName());
+            }
+            
             synchronized( stack ) {
                 if( stack.empty() ) {
                     return cls.newInstance();
@@ -206,15 +205,14 @@ public abstract class Execution {
                 for( Execution execution : tmp ) {
                     Stack<Execution> stack;
                     
-                    synchronized( cache ) {
-                        if( !cache.containsKey(execution.getClass().getName()) ) {
-                            stack = new Stack<Execution>();
-                            cache.put(execution.getClass().getName(), stack);
-                        }
-                        else {
-                            stack = cache.get(execution.getClass().getName());
-                        }
+                    if( !cache.containsKey(execution.getClass().getName()) ) {
+                        stack = new Stack<Execution>();
+                        cache.put(execution.getClass().getName(), stack);
                     }
+                    else {
+                        stack = cache.get(execution.getClass().getName());
+                    }
+                    
                     synchronized( stack ) {
                         if( stack.size() > 10 || stack.contains(execution) ) {
                             continue;
@@ -340,6 +338,10 @@ public abstract class Execution {
             data = args;
             try {
                 String sql = loadStatement(connection, args);
+                
+                // let's check our cache for results
+                
+                
                 Map<String,Object> res;
                 
                 if( logger.isDebugEnabled() ) {
@@ -368,7 +370,7 @@ public abstract class Execution {
                     return (HashMap<String,Object>)res;
                 }
                 else {
-                    HashMap<String,Object> tmp = new HashMap<String,Object>();
+                    HashMap<String,Object> tmp = new HashMap<String,Object>(res.size());
                     
                     tmp.putAll(res);
                     return tmp;

@@ -28,7 +28,6 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Currency;
@@ -41,6 +40,10 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.log4j.Logger;
 import org.dasein.persist.annotations.AutoJSON;
@@ -59,9 +62,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 public abstract class PersistentCache<T extends CachedItem> {
     static private final Logger logger = Logger.getLogger(PersistentCache.class);
 
@@ -71,7 +71,7 @@ public abstract class PersistentCache<T extends CachedItem> {
         public String                      localField;
     }
 
-    static private final HashMap<String,PersistentCache<? extends CachedItem>> caches = new HashMap<String,PersistentCache<? extends CachedItem>>();
+    static private final ConcurrentHashMap<String,PersistentCache<? extends CachedItem>> caches = new ConcurrentHashMap<String,PersistentCache<? extends CachedItem>>();
 
     static public PersistentCache<? extends CachedItem> getCache(Class<? extends CachedItem> forClass) throws PersistenceException {
         SchemaMapper[] mappers = null;
@@ -153,12 +153,10 @@ public abstract class PersistentCache<T extends CachedItem> {
     static public PersistentCache<? extends CachedItem> getCacheWithSchema(@Nonnull Class<? extends CachedItem> forClass, @Nullable String alternateEntytName, @Nonnull String primaryKey, @Nonnull String schemaVersion, @Nullable SchemaMapper ... mappers) throws PersistenceException {
         PersistentCache<? extends CachedItem> cache = null;
         String className = forClass.getName();
-
-        synchronized( caches ) {
-            cache = caches.get(className);
-            if( cache != null ) {
-                return cache;
-            }
+        
+        cache = caches.get(className);
+        if( cache != null ) {
+            return cache;
         }
 
         Properties props = new Properties();
@@ -266,16 +264,16 @@ public abstract class PersistentCache<T extends CachedItem> {
                 throw new PersistenceException(err);
             }
         }
-        synchronized( caches ) {
-            PersistentCache<? extends CachedItem> c = caches.get(className);
+        
+        PersistentCache<? extends CachedItem> c = caches.get(className);
 
-            if( c != null ) {
-                cache = c;
-            }
-            else {
-                caches.put(className, cache);
-            }
+        if( c != null ) {
+            cache = c;
         }
+        else {
+            caches.put(className, cache);
+        }
+        
         return cache;
     }
 

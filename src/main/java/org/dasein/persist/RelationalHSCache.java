@@ -71,6 +71,7 @@ import com.google.code.hs4j.impl.HSClientImpl;
  *
  * @param <T>
  */
+@Deprecated
 public final class RelationalHSCache<T extends CachedItem> extends PersistentCache<T> {
 	static public final Logger logger = Logger.getLogger(RelationalCache.class);
 
