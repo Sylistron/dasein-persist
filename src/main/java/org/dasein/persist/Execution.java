@@ -333,6 +333,18 @@ public abstract class Execution {
     	return null; // no-op
     }
     
+    /**
+     * Intended for sub-classes to provid their own caching mechanism
+     * 
+     * @param sql The statement to use to help lookup a result.
+     * @param args The values we are preparing the statement with, also useful for looking up a cache result.
+     * @param results The items to cache.
+     * @throws PersistenceException Thrown if there's a problem.
+     */
+    public void cache(String sql, Map<String,Object> args, Map<String,Object> results) throws PersistenceException {
+    	// no-op
+    }
+    
     Map<String,Object> executeEvent(Transaction trans, Map<String,Object> args, StringBuilder statementHolder) throws PersistenceException {
         logger.debug("enter - execute(Transaction, Map)");
         state = "EXECUTING";
@@ -377,18 +389,25 @@ public abstract class Execution {
                 if( logger.isDebugEnabled() ) {
                     logger.debug("RESULTS: " + res);
                 }
-                if( res ==  null ) {
+                if( res == null ) {
                     return null;
                 }
-                else if( res instanceof HashMap ) {
-                    return (HashMap<String,Object>)res;
-                }
-                else {
-                    HashMap<String,Object> tmp = new HashMap<String,Object>(res.size());
+                
+                HashMap<String,Object> tmp;
+                
+                if( res instanceof HashMap ) {
+                    tmp = (HashMap<String,Object>)res;
+                } else {
+               
+                    tmp = new HashMap<String,Object>(res.size());
                     
-                    tmp.putAll(res);
-                    return tmp;
+                    tmp.putAll(res);                    
                 }
+                
+                // cache if we want
+                cache(sql, args, tmp);
+                
+                return tmp;
             }
             catch( SQLException e ) {
                 logger.debug("Error executing event: " + e.getMessage(), e);

@@ -174,7 +174,7 @@ public class Loader extends AutomatedSql {
     
     public Map<String,Object> run(Transaction xaction, Map<String,Object> params) throws SQLException, PersistenceException {
         ArrayList<Map<String,Object>> list = new ArrayList<Map<String,Object>>(0);
-        HashMap<String,Object> map = new HashMap<String,Object>(0);
+        HashMap<String,Object> map = new HashMap<String,Object>(1);
         int count = getColumns().size();
         long startTimestamp = System.currentTimeMillis();
         
