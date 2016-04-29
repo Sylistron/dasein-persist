@@ -73,7 +73,7 @@ public class Loader extends AutomatedSql {
                 str.append(" FROM ");
                 str.append(getIdentifier(getTableName()));
                 if( !getCriteria().isEmpty() ) {
-                    ArrayList<Class<? extends CachedItem>> joins = new ArrayList<Class<? extends CachedItem>>();
+                    ArrayList<Class<? extends CachedItem>> joins = new ArrayList<Class<? extends CachedItem>>(0);
                     Iterator<Criterion> criteria;
 
                     criteria = getCriteria().iterator();
