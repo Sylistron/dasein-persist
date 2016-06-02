@@ -687,13 +687,15 @@ public class Transaction {
                     }
                 }
             }
-            state = "ROLLING BACK";
-            try {
-                connection.rollback();
-            }
-            catch( SQLException e ) {
-                logger.error("Problem with rollback: " + e.getMessage(), e);
-            }
+            if (!this.readOnly) {
+            	state = "ROLLING BACK";
+                try {
+                    connection.rollback();
+                }
+                catch( SQLException e ) {
+                    logger.error("Problem with rollback: " + e.getMessage(), e);
+                }
+            }            
             try {
                 connection.close();
                 if (logger.isDebugEnabled()) {
