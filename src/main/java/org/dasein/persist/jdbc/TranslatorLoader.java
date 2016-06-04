@@ -28,9 +28,9 @@ import org.dasein.persist.PersistenceException;
 import org.dasein.persist.Transaction;
 import org.dasein.util.Translator;
 
-public abstract class TranslatorLoader extends TranslationSql {
+public abstract class TranslatorLoader extends Loader {
     private String sql = null;
-    
+   
     static public final int ATTRIBUTE   = 1;
     static public final int LANGUAGE    = 2;
     static public final int COUNTRY     = 3;
@@ -39,6 +39,7 @@ public abstract class TranslatorLoader extends TranslationSql {
     static public final int W_OWNER_ID    = 1;
     
     public String getStatement() throws SQLException {
+    	
         if( sql == null ) {
             StringBuilder str = new StringBuilder();
             String tbl = getTable();
@@ -67,8 +68,8 @@ public abstract class TranslatorLoader extends TranslationSql {
     public abstract String getTable();
     
     public Map<String,Object> run(Transaction ignore, Map<String,Object> state) throws PersistenceException, SQLException {
-        Map<String,Map<Locale,String>> tmp = new HashMap<String,Map<Locale,String>>();
-        Map<String,Object> list = new HashMap<String,Object>();
+        Map<String,Map<Locale,String>> tmp = new HashMap<String,Map<Locale,String>>(0);
+        Map<String,Object> list = new HashMap<String,Object>(0);
         Object id = state.get("ownerId");
         
         statement.setString(W_OWNER_ID, id.toString());
@@ -95,7 +96,7 @@ public abstract class TranslatorLoader extends TranslationSql {
                     trans = tmp.get(attr);
                 }
                 else {
-                    trans = new HashMap<Locale,String>();
+                    trans = new HashMap<Locale,String>(0);
                     tmp.put(attr, trans);
                 }
                 trans.put(loc, results.getString(TRANSLATION));

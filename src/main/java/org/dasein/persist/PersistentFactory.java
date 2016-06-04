@@ -323,6 +323,7 @@ public final class PersistentFactory<T> {
     
     @SuppressWarnings({ "unchecked", "restriction" })
     static private Class<? extends Execution> compile(String fcn, String cname, String java) throws PersistenceException {
+    	return null;
         /*
         System.out.println("Compiling: " + fcn);
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
@@ -371,6 +372,9 @@ public final class PersistentFactory<T> {
             throw new PersistenceException(t.getMessage());
         }
         */
+    	
+    	/*
+    	
         logger.debug("enter - compile(String,String,String)");
         try {
             if( logger.isDebugEnabled() ) {
@@ -457,6 +461,7 @@ public final class PersistentFactory<T> {
         finally {
             logger.debug("exit - compile(String,String,String)");
         }
+        */
     }
     
     private void compileCounter(SearchTerm[] terms, Map<String,Class<? extends Execution>> map) throws PersistenceException {

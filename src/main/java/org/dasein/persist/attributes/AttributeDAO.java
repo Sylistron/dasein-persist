@@ -87,7 +87,7 @@ public class AttributeDAO {
     }
 
     public DataTypeMap loadTypes(Class cls, String oid) throws PersistenceException {
-        Transaction xaction = Transaction.getInstance();
+        Transaction xaction = Transaction.getInstance(true);
         
         try {
             DataTypeMap types = loadTypes(xaction, cls, oid);

@@ -491,8 +491,8 @@ public abstract class Execution {
     
     @SuppressWarnings("unchecked")
     public Map<String,Translator<String>> loadStringTranslations(Transaction xaction, Class cls, String id) throws PersistenceException, SQLException {
-        Map<String,Object> criteria = new HashMap<String,Object>();
-        Map<String,Translator<String>> map = new HashMap<String,Translator<String>>();
+        Map<String,Object> criteria = new HashMap<String,Object>(2);
+        Map<String,Translator<String>> map = new HashMap<String,Translator<String>>(1);
         
         criteria.put("ownerClass", cls);
         criteria.put("ownerId", id);

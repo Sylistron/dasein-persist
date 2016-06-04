@@ -40,7 +40,7 @@ import org.dasein.util.Translator;
  * @version $Revision: 1.3 $
  * @author George Reese
  */
-public abstract class TranslatorUpdater extends TranslationSql {
+public abstract class TranslatorUpdater extends Updater {
     static public final int OWNER_ID    = 1;
     static public final int ATTRIBUTE   = 2;
     static public final int LANGUAGE    = 3;

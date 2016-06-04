@@ -347,6 +347,31 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
     }
     
     /**
+     * Runs the loader and returns a JitCollection filled with your objects.
+     * 
+     * @param xaction the Transaction to use
+     * @param loader the Loader to run
+     * @param criteria the parameters for the Loader to use
+     * @return a JitCollection filled with your data
+     * @throws PersistenceException an error occurred talking to the data store 
+     */
+    public Collection<T> find(Transaction xaction, Class<? extends Loader> loader, Map<String,Object> criteria) throws PersistenceException {
+        logger.debug("enter - find(Transaction, Loader)");
+        try {
+        	final Jiterator<T> it = new Jiterator<T>();
+        	final Map<String,Object> results;
+            
+            results = xaction.execute(loader, criteria, readDataSource);
+
+            DaseinUtilTasks.submit(new RelationalCacheTask(it, results));
+            return new JitCollection<T>(it, getEntityClassName());
+        }
+        finally {
+            logger.debug("exit - find(Transaction, Loader)");
+        }
+    }
+    
+    /**
      * Retrieves the object uniquely identified by the value for the specified ID field.
      * @param primaryKeyValue the ID field identifying the object
      * @return the object matching the query criterion
@@ -359,10 +384,9 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
             
             loader = new CacheLoader<T>() {
                 public T load(Object ... args) {
-                    SearchTerm[] terms = new SearchTerm[1];
+                	logger.debug("args: " + args[0]  + " " + args[1]);
+                    SearchTerm[] terms = new SearchTerm[] {new SearchTerm((String)args[0], Operator.EQUALS, args[1])};
                     Collection<T> list;
-                    
-                    terms[0] = new SearchTerm((String)args[0], Operator.EQUALS, args[1]);
                     try {
                         list = RelationalCache.this.load(getLoader(terms, null), null, toParams(terms));
                     }
@@ -383,7 +407,7 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
                     return list.iterator().next();
                 }
             };
-            logger.debug("Executing cache find...");
+            logger.debug("Executing cache find... on: " + getPrimaryKeyField() + "=" + primaryKeyValue);
             try {
                 return getCache().find(getPrimaryKeyField(), primaryKeyValue, loader, getPrimaryKeyField(), primaryKeyValue);
             }
@@ -406,7 +430,7 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
             }
         }
         finally {
-            logger.debug("exit - get(String,Object)");
+            logger.debug("exit - get(Object)");
         }
     }
 
@@ -478,8 +502,9 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
             for( SearchTerm term : searchTerms ) {
                 params.put(term.getColumn(), term.getValue());
             }
+            return params;
         }
-        return  new HashMap<String,Object>(0);
+        return new HashMap<String,Object>(0);
     }
 
     @SuppressWarnings("unchecked")
@@ -517,17 +542,15 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
     }
     
     private Collection<T> load(Loader loader, JiteratorFilter<T> filter, Map<String,Object> params) throws PersistenceException {
-        logger.debug("enter - load(Class,SearchTerm...)");
+        logger.debug("enter - load(Loader,JiteratorFilter<T>,Map<String,Object>)");
         try {
             Transaction xaction = Transaction.getInstance(true);
             final Jiterator<T> it = new Jiterator<T>(filter);
-
             params.put("--key--", getPrimaryKey().getFields()[0]);
             try {
                 final Map<String,Object> results;
                 
                 results = xaction.execute(loader, params, readDataSource);
-                xaction.commit();
 
                 DaseinUtilTasks.submit(new RelationalCacheTask(it, results));
                 return new JitCollection<T>(it, getEntityClassName());
@@ -551,7 +574,7 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
             }
         }
         finally {
-            logger.debug("exit - load(Class,Map)");
+            logger.debug("exit - load(Loader,JiteratorFilter<T>,Map<String,Object>)");
         }
     }
     

@@ -89,8 +89,8 @@ public class LoadTranslator extends Execution {
         Transaction xaction = Transaction.getInstance();
         
         try {
-            Map<String,Map<Locale,String>> tmp = new HashMap<String,Map<Locale,String>>();
-            Map<String,Object> list = new HashMap<String,Object>();
+            Map<String,Map<Locale,String>> tmp = new HashMap<String,Map<Locale,String>>(1);
+            Map<String,Object> list = new HashMap<String,Object>(1);
             Class cls = (Class)state.get("ownerClass");
             Object id = state.get("ownerId");
             

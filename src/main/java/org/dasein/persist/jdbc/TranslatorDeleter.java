@@ -36,7 +36,7 @@ import org.dasein.persist.Transaction;
  * @version $Revision: 1.2 $
  * @author George Reese
  */
-public abstract class TranslatorDeleter extends TranslationSql {
+public abstract class TranslatorDeleter extends Deleter {
     static public final int W_OWNER_ID    = 1;
     
     private String sql = null;
