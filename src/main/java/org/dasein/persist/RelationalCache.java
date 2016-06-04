@@ -250,7 +250,7 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
                 long count;
     
                 results = xaction.execute(counter, new HashMap<String,Object>(0), readDataSource);
-                count = ((Number)results.get("count")).longValue();
+                count = ((Number)results.get(Counter.COUNT)).longValue();
                 xaction.commit();
                 return count;
             }
@@ -276,8 +276,7 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
                 long count;
     
                 results = xaction.execute(counter, params, readDataSource);
-                count = ((Number)results.get("count")).longValue();
-                xaction.commit();
+                count = ((Number)results.get(Counter.COUNT)).longValue();
                 return count;
             }
             finally {
@@ -286,6 +285,51 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
         }
         finally {
             logger.debug("exit - count(SearchTerm...)");
+        }
+    }
+    
+    /**
+     * Runs the counter and returns the count.
+     * 
+     * @param xaction the Counter to use
+     * @param counter the Loader to run
+     * @param criteria the parameters for the Loader to use
+     * @return the count
+     * @throws PersistenceException an error occurred talking to the data store 
+     */
+    public long count(Transaction xaction, Class<? extends Counter> counter, Map<String,Object> criteria) throws PersistenceException {
+        logger.debug("enter - count(Transaction, Counter)");
+        try {
+        	Map<String,Object> results;
+        	long count;
+        
+        	results = xaction.execute(counter, criteria, readDataSource);
+            count = ((Number)results.get(Counter.COUNT)).longValue();
+            return count;
+        }
+        finally {
+            logger.debug("exit - count(Transaction, Counter)");
+        }
+    }
+    
+    /**
+     * Runs the counter and returns the count.
+     * 
+     * @param xaction the Counter to use
+     * @param counter the Loader to run
+     * @param criteria the parameters for the Loader to use
+     * @return the count
+     * @throws PersistenceException an error occurred talking to the data store 
+     */
+    public long count(Class<? extends Counter> counter, Map<String,Object> criteria) throws PersistenceException {
+        logger.debug("enter - count(Transaction, Counter)");
+        Transaction xaction = Transaction.getInstance(true);
+        try {
+        	return count(xaction, counter, criteria);
+        }
+        finally {
+        	xaction.rollback();
+            logger.debug("exit - count(Transaction, Counter)");
         }
     }
     
@@ -367,6 +411,26 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
             return new JitCollection<T>(it, getEntityClassName());
         }
         finally {
+            logger.debug("exit - find(Transaction, Loader)");
+        }
+    }
+    
+    /**
+     * Runs the loader and returns a JitCollection filled with your objects.
+     * 
+     * @param loader the Loader to run
+     * @param criteria the parameters for the Loader to use
+     * @return a JitCollection filled with your data
+     * @throws PersistenceException an error occurred talking to the data store 
+     */
+    public Collection<T> find(Class<? extends Loader> loader, Map<String,Object> criteria) throws PersistenceException {
+        logger.debug("enter - find(Transaction, Loader)");
+        Transaction xaction = Transaction.getInstance(true);
+        try {
+        	return find(xaction, loader, criteria);
+        }
+        finally {
+        	xaction.rollback();
             logger.debug("exit - find(Transaction, Loader)");
         }
     }
