@@ -23,7 +23,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.Priority;
 import org.dasein.persist.jdbc.AutomatedSql.Operator;
 import org.dasein.persist.jdbc.AutomatedSql.TranslationMethod;
 import org.dasein.persist.jdbc.Counter;
@@ -404,7 +406,7 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
         try {
         	final Jiterator<T> it = new Jiterator<T>();
         	final Map<String,Object> results;
-            
+        	            
             results = xaction.execute(loader, criteria, readDataSource);
 
             DaseinUtilTasks.submit(new RelationalCacheTask(it, results));
@@ -484,8 +486,8 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
                 if( t != null && t instanceof PersistenceException ) {
                     throw (PersistenceException)t;
                 }
-                if( logger.isDebugEnabled() ) {
-                    logger.error(e.getMessage(), e);
+                if( logger.isEnabledFor(Level.WARN)) {
+                    logger.warn(e.getMessage(), e);
                 }
                 throw new PersistenceException(e);
             }
@@ -676,6 +678,6 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
     @Override
     public void update(Transaction xaction, T item, Map<String,Object> state) throws PersistenceException {     
         state.put("--key--", getPrimaryKey().getFields()[0]);
-        xaction.execute(getUpdater(), state, writeDataSource);
+        xaction.execute(getUpdater(), state, writeDataSource);        
     }    
 }

@@ -70,7 +70,7 @@ public class AttributeDAO {
     }
     
     public AttributeMap loadAttributes(Class cls, String oid) throws PersistenceException {
-        Transaction xaction = Transaction.getInstance();
+        Transaction xaction = Transaction.getInstance(true);
         
         try {
             Map<String,Object> state = new HashMap<String,Object>(2);
@@ -78,7 +78,6 @@ public class AttributeDAO {
             state.put(OWNER_ID, oid);
             state.put(OWNER_CLASS, cls.getName());
             state = xaction.execute(LoadAttributes.class, state, Execution.getDataSourceName(cls.getName()));
-            xaction.commit();
             return new AttributeMap(state);
         }
         finally {
@@ -92,7 +91,6 @@ public class AttributeDAO {
         try {
             DataTypeMap types = loadTypes(xaction, cls, oid);
             
-            xaction.commit();
             return types;
         }
         finally {
