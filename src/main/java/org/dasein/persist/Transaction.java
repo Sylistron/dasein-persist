@@ -93,6 +93,9 @@ public class Transaction {
     static public final String MAID_FREQUENCY = "dasein.persist.maid.frequency";
     static public final String MAID_MAXSECONDS = "dasein.persist.maid.maxseconds";
     static public final String MAID_WARNSECONDS = "dasein.persist.maid.warnseconds";
+    static public final String CONNECTION_READ_ONLY_ENABLED = "dasein.persist.connections.readonly.enabled";
+    
+    static public Boolean ENABLE_READ_ONLY_CONNECTIONS = null;
 
     static private final boolean tracking;
     static {
@@ -582,9 +585,11 @@ public class Transaction {
                 throw new PersistenceException(e.getMessage());
             }
             if (!readOnly) {
-            	conn.setAutoCommit(false);
+        		conn.setAutoCommit(false);
+        	}
+            if (isEnabledReadOnlyConnections()) {
+            	conn.setReadOnly(readOnly);
             }
-            conn.setReadOnly(readOnly);
             connection = conn;
             if (tracking) {
                 connections.incrementAndGet();
@@ -737,6 +742,18 @@ public class Transaction {
 
     static boolean isMaidDisabled() {
         return properties.containsKey(MAID_DISABLED) && properties.getProperty(MAID_DISABLED).equalsIgnoreCase("true");
+    }
+    
+    static boolean isEnabledReadOnlyConnections() {
+    	if (ENABLE_READ_ONLY_CONNECTIONS == null) {
+    		if (properties.containsKey(CONNECTION_READ_ONLY_ENABLED)) {
+    			ENABLE_READ_ONLY_CONNECTIONS = properties.getProperty(CONNECTION_READ_ONLY_ENABLED).equalsIgnoreCase("true");
+    		} else {
+    			ENABLE_READ_ONLY_CONNECTIONS = true;
+    		}    		
+    	}
+    	
+    	return ENABLE_READ_ONLY_CONNECTIONS;
     }
 
     static private long getMsFromSecondsProperty(String propKey, int defaultSeconds) {

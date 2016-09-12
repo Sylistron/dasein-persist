@@ -467,7 +467,7 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
                             throw new RuntimeException(e);
                         }
                     }
-                    if( list.isEmpty() ) {
+                    if(list == null || list.isEmpty() ) {
                         return null;
                     }
                     return list.iterator().next();
