@@ -37,9 +37,9 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.dasein.persist.Execution;
 import org.dasein.persist.PersistenceException;
+import org.dasein.persist.PersistentCache.EntityJoin;
 import org.dasein.persist.PersistentFactory;
 import org.dasein.persist.Transaction;
-import org.dasein.persist.PersistentCache.EntityJoin;
 import org.dasein.persist.l10n.LocalizationGroup;
 import org.dasein.util.CachedItem;
 import org.dasein.util.Translator;
@@ -72,22 +72,32 @@ public class AutomatedSql extends Execution {
     static public class Criterion {
         public String                        column   = null;
         public Class<? extends CachedItem>   entity   = null;
+        public int							 position = 1;							 
 
         public Operator operator = Operator.EQUALS;
 
-        public Criterion(String col) {
-            this(null, col, Operator.EQUALS);
+        //public Criterion(String col) {
+        //    this(null, col, Operator.EQUALS, 1);
+       // }
+        
+        public Criterion(String col, int position) {
+            this(null, col, Operator.EQUALS, position);
         }
 
-        public Criterion(String col, Operator oper) {
-            this(null, col, oper);
+        //public Criterion(String col, Operator oper) {
+         //   this(null, col, oper, 1);
+        //}
+        
+        public Criterion(String col, Operator oper, int position) {
+            this(null, col, oper, position);
         }
 
-        public Criterion(Class<? extends CachedItem> entity, String column, Operator operator) {
+        public Criterion(Class<? extends CachedItem> entity, String column, Operator operator, int position) {
             super();
             this.entity = entity;
             this.column = column;
             this.operator = operator;
+            this.position = position;
         }
     }
 
@@ -511,8 +521,10 @@ public class AutomatedSql extends Execution {
 
     protected void setCriteria(Join j, String... params) {
         join = j;
+        int i = 1;
         for( String p : params ) {
-            criteria.add(new Criterion(p));
+            criteria.add(new Criterion(p, i));
+            i++;
         }
     }
 

@@ -240,6 +240,11 @@ public abstract class Execution {
      */
     public Map<String,Object> data       = null;
     
+    /**
+     * Another option to use rather than the data map.
+     */
+    public SearchTerm[] terms       = null;
+    
     public String             dsn        = null;
     @Deprecated
     public ResultSet         results    = null;
@@ -334,6 +339,18 @@ public abstract class Execution {
     }
     
     /**
+     * Intended for sub-classes to provide their own caching mechanism.
+     * 
+     * @param sql The statement to use to help lookup a result.
+     * @param terms The values we are preparing the statement with, also useful for looking up a cache result.
+     * @return The cached items or null for nothing in the cache.
+     * @throws PersistenceException Thrown if there's a problem.
+     */
+    public Map<String,Object> retrieveFromCache(String sql, SearchTerm[] terms) throws PersistenceException {
+    	return null; // no-op
+    }
+    
+    /**
      * Intended for sub-classes to provid their own caching mechanism
      * 
      * @param sql The statement to use to help lookup a result.
@@ -342,6 +359,18 @@ public abstract class Execution {
      * @throws PersistenceException Thrown if there's a problem.
      */
     public void cache(String sql, Map<String,Object> args, Map<String,Object> results) throws PersistenceException {
+    	// no-op
+    }
+    
+    /**
+     * Intended for sub-classes to provid their own caching mechanism
+     * 
+     * @param sql The statement to use to help lookup a result.
+     * @param terms The values we are preparing the statement with, also useful for looking up a cache result.
+     * @param results The items to cache.
+     * @throws PersistenceException Thrown if there's a problem.
+     */
+    public void cache(String sql, SearchTerm[] terms, Map<String,Object> results) throws PersistenceException {
     	// no-op
     }
     
@@ -420,6 +449,81 @@ public abstract class Execution {
         }
     }
 
+    Map<String,Object> executeEvent(Transaction trans, SearchTerm[] terms, StringBuilder statementHolder) throws PersistenceException {
+        logger.debug("enter");
+        state = "EXECUTING";
+        try {
+        	
+        	if( logger.isDebugEnabled() ) {
+                logger.debug("Getting connection from transaction: " + trans.getTransactionId());
+            }
+            connection = trans.getConnection();
+            this.terms = terms;
+            try {
+                String sql = loadStatement(connection, terms);
+                
+                // let's check our cache for results
+                Map<String,Object> res = retrieveFromCache(sql, terms);
+                
+                if (res != null) {
+                	try {
+                		return res;
+                	} finally {
+                        try { statement.close(); statement = null; }
+                        catch( Throwable ignore ) { }
+                    }
+                }
+                
+                if( logger.isDebugEnabled() ) {
+                    logger.debug("Preparing: " + sql);
+                }
+                if( statementHolder != null ) {
+                    statementHolder.append(sql);
+                }
+                statement = connection.prepareStatement(sql);
+                try {
+                    logger.debug("And executing the prepared statement.");
+                
+                    res = run(trans, terms);
+                }
+                finally {
+                    try { statement.close(); statement = null; }
+                    catch( Throwable ignore ) { }
+                }
+                if( logger.isDebugEnabled() ) {
+                    logger.debug("RESULTS: " + res);
+                }
+                if( res == null ) {
+                    return null;
+                }
+                
+                HashMap<String,Object> tmp;
+                
+                if( res instanceof HashMap ) {
+                    tmp = (HashMap<String,Object>)res;
+                } else {
+               
+                    tmp = new HashMap<String,Object>(res.size());
+                    
+                    tmp.putAll(res);                    
+                }
+                
+                // cache if we want
+                cache(sql, terms, tmp);
+                
+                return tmp;
+            }
+            catch( SQLException e ) {
+                logger.debug("Error executing event: " + e.getMessage(), e);
+                throw new PersistenceException(e.getMessage());
+            }
+        }
+        finally {
+            state = "IDLE";
+            logger.debug("exit");
+        }
+    }
+    
     public Connection getConnection() {
         return connection;
     }
@@ -457,6 +561,10 @@ public abstract class Execution {
         return getStatement(conn);
     }
     
+    public String getStatement(Connection conn, SearchTerm[] terms) throws SQLException {
+        return getStatement(conn);
+    }
+    
     synchronized final String loadStatement(Connection conn, Map<String,Object> params) throws SQLException {
         boolean wasnull = false;
         
@@ -466,6 +574,24 @@ public abstract class Execution {
         }
         try {
             return getStatement(conn, params);
+        }
+        finally {
+            if( wasnull ) {
+                connection = null;
+            }
+        }
+        
+    }
+    
+    synchronized final String loadStatement(Connection conn, SearchTerm[] terms) throws SQLException {
+        boolean wasnull = false;
+        
+        if( connection == null ) {
+            wasnull = true;
+            connection = conn;
+        }
+        try {
+            return getStatement(conn, terms);
         }
         finally {
             if( wasnull ) {
@@ -529,6 +655,10 @@ public abstract class Execution {
     }
 
     public Map<String,Object> run(Transaction xaction, Map<String,Object> params) throws PersistenceException, SQLException {
+        return run();
+    }
+    
+    public Map<String,Object> run(Transaction xaction, SearchTerm[] terms) throws PersistenceException, SQLException {
         return run();
     }
     

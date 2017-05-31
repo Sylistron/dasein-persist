@@ -468,6 +468,61 @@ public class Transaction {
         }
     }
     
+    public Map<String,Object> execute(Execution event, SearchTerm[] terms, String dsn) throws PersistenceException {
+        try {
+            StringBuilder holder = new StringBuilder();
+            boolean success = false;
+            
+            state = "PREPARING";
+            try {
+                Map<String,Object> res;
+                
+                if( connection == null ) {
+                    open(event, dsn);
+                }
+                //stateargs = event.loadStatement(connection, args);
+                state = "EXECUTING " + event.getClass().getName();
+                stackTrace = Thread.currentThread().getStackTrace();
+                res = event.executeEvent(this, terms, holder);
+                events.push(event);
+                statements.push(holder.toString());
+                success = true;
+                state = "AWAITING COMMIT: " + holder.toString();
+                return res;
+            }
+            catch( SQLException e ) {
+                String err = "SQLException: " + e.getMessage();
+                if( logger.isDebugEnabled() ) {
+                    logger.warn(err, e);
+                } else {
+                    logger.warn(err);
+                }
+                throw new PersistenceException(e);
+            }
+            catch( RuntimeException e ) {
+                logger.error("RuntimeException: " + e.getMessage(), e);
+                throw new PersistenceException(e);
+            }
+            catch( Error e ) {
+                String err = "Error: " + e.getMessage();
+                if( logger.isDebugEnabled() ) {
+                    logger.error(err, e);
+                } else {
+                    logger.error(err);
+                }
+                throw new PersistenceException(new RuntimeException(e));
+            }
+            finally {
+                if( !success ) {
+                    logger.warn("FAILED TRANSACTION (" + transactionId + "): " + holder.toString());
+                    rollback();
+                }
+            }
+        }
+        finally {
+        }
+    }
+    
     /**
      * Executes the specified event as part of this transaction.
      * @param event the event to execute in this transaction context

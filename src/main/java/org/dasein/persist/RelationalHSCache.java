@@ -172,8 +172,10 @@ public final class RelationalHSCache<T extends CachedItem> extends PersistentCac
                 if( terms != null && terms.length > 0 ) {
                     ArrayList<Criterion> criteria = new ArrayList<Criterion>();
                 
+                    int i = 1;
                     for( SearchTerm term : terms ) {
-                        criteria.add(new Criterion(term.getColumn(), term.getOperator()));
+                        criteria.add(new Criterion(term.getColumn(), term.getOperator(), i));
+                        i++;
                     }
                     setCriteria(criteria.toArray(new Criterion[criteria.size()]));
                 }
@@ -259,8 +261,10 @@ public final class RelationalHSCache<T extends CachedItem> extends PersistentCac
                 if( terms != null && terms.length > 0 ) {
                     ArrayList<Criterion> criteria = new ArrayList<Criterion>();
                 
+                    int i = 1;
                     for( SearchTerm term : terms ) {
-                        criteria.add(new Criterion(term.getJoinEntity(), term.getColumn(), term.getOperator()));
+                        criteria.add(new Criterion(term.getJoinEntity(), term.getColumn(), term.getOperator(), i));
+                        i++;
                     }
                     setCriteria(criteria.toArray(new Criterion[criteria.size()]));
                 }

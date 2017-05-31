@@ -25,7 +25,6 @@ import java.util.Map;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.Priority;
 import org.dasein.persist.jdbc.AutomatedSql.Operator;
 import org.dasein.persist.jdbc.AutomatedSql.TranslationMethod;
 import org.dasein.persist.jdbc.Counter;
@@ -87,8 +86,10 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
                 if( terms != null && terms.length > 0 ) {
                     ArrayList<Criterion> criteria = new ArrayList<Criterion>(terms.length);
                 
+                    int i = 1;
                     for( SearchTerm term : terms ) {
-                        criteria.add(new Criterion(term.getColumn(), term.getOperator()));
+                        criteria.add(new Criterion(term.getColumn(), term.getOperator(), i));
+                        i++;
                     }
                     setCriteria(criteria.toArray(new Criterion[criteria.size()]));
                 }
@@ -151,8 +152,10 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
                 if( killTerms != null && killTerms.length > 0 ) {
                     ArrayList<Criterion> criteria = new ArrayList<Criterion>(killTerms.length);
                 
+                    int i = 1;
                     for( SearchTerm term : killTerms ) {
-                        criteria.add(new Criterion(term.getJoinEntity(), term.getColumn(), term.getOperator()));
+                        criteria.add(new Criterion(term.getJoinEntity(), term.getColumn(), term.getOperator(), i));
+                        i++;
                     }
                     setCriteria(criteria.toArray(new Criterion[criteria.size()]));
                 }
@@ -175,19 +178,21 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
     }
     
     private Loader getLoader(SearchTerm[] whereTerms, OrderedColumn[] orderBy) {
-        final SearchTerm[] terms = whereTerms;
+        final SearchTerm[] loaderTerms = whereTerms;
         final OrderedColumn[] order = orderBy;
         final RelationalCache<T> self = this;
         
-        Loader loader = new Loader() {
+        Loader loader = new Loader(getPrimaryKeyField()) {
             public void init() {
                 setTarget(self.getEntityClassName());
                 setEntityJoins(getJoins());
-                if( terms != null && terms.length > 0 ) {
-                    ArrayList<Criterion> criteria = new ArrayList<Criterion>(terms.length);
+                if( loaderTerms != null && loaderTerms.length > 0 ) {
+                    ArrayList<Criterion> criteria = new ArrayList<Criterion>(loaderTerms.length);
                 
+                    int i = 1;
                     for( SearchTerm term : terms ) {
-                        criteria.add(new Criterion(term.getJoinEntity(), term.getColumn(), term.getOperator()));
+                        criteria.add(new Criterion(term.getJoinEntity(), term.getColumn(), term.getOperator(), i));
+                        i++;
                     }
                     setCriteria(criteria.toArray(new Criterion[criteria.size()]));
                 }
@@ -345,7 +350,7 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
      */
     @Override
     public T create(Transaction xaction, Map<String,Object> state) throws PersistenceException {
-        state.put("--key--", getPrimaryKey().getFields()[0]);
+        state.put("--key--", getPrimaryKeyField());
         xaction.execute(getCreator(), state, writeDataSource);
         return getCache().find(state);
     }
@@ -360,7 +365,7 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
      */
     @Override
     public T replace(Transaction xaction, Map<String,Object> state) throws PersistenceException {
-        state.put("--key--", getPrimaryKey().getFields()[0]);
+        state.put("--key--", getPrimaryKeyField());
         xaction.execute(getReplacer(), state, writeDataSource);
         return getCache().find(state);
     }
@@ -385,7 +390,7 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
                     i++;
                 }
             }
-            return this.load(getLoader(terms, order), filter, toParams(terms));
+            return this.load(getLoader(terms, order), filter, terms);
         }
         finally {
             logger.debug("exit - find(SearchTerm[], JiteratorFilter, Boolean, String...)");
@@ -612,7 +617,7 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
         try {
             Transaction xaction = Transaction.getInstance(true);
             final Jiterator<T> it = new Jiterator<T>(filter);
-            params.put("--key--", getPrimaryKey().getFields()[0]);
+            params.put("--key--", getPrimaryKeyField());
             try {
                 final Map<String,Object> results;
                 
@@ -641,6 +646,42 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
         }
         finally {
             logger.debug("exit - load(Loader,JiteratorFilter<T>,Map<String,Object>)");
+        }
+    }
+    
+    private Collection<T> load(Loader loader, JiteratorFilter<T> filter, SearchTerm[] terms) throws PersistenceException {
+        logger.debug("enter");
+        try {
+            Transaction xaction = Transaction.getInstance(true);
+            final Jiterator<T> it = new Jiterator<T>(filter);
+            try {
+                final Map<String,Object> results;
+                
+                results = xaction.execute(loader, terms, readDataSource);
+
+                DaseinUtilTasks.submit(new RelationalCacheTask(it, results));
+                return new JitCollection<T>(it, getEntityClassName());
+            }
+            catch( PersistenceException e ) {
+                it.setLoadException(e);
+                throw e;
+            }
+            catch( RuntimeException e ) {
+                it.setLoadException(e);
+                throw e;
+            }
+            catch( Throwable t ) {
+                RuntimeException e = new RuntimeException(t);
+                
+                it.setLoadException(e);
+                throw e;
+            }
+            finally {
+                xaction.rollback();
+            }
+        }
+        finally {
+            logger.debug("exit");
         }
     }
     

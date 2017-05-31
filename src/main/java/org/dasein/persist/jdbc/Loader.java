@@ -35,6 +35,7 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.dasein.persist.PersistenceException;
 import org.dasein.persist.PersistentCache.EntityJoin;
+import org.dasein.persist.SearchTerm;
 import org.dasein.persist.Transaction;
 import org.dasein.persist.l10n.LocalizationGroup;
 import org.dasein.util.CachedItem;
@@ -49,9 +50,15 @@ public class Loader extends AutomatedSql {
     private boolean                                     descending;
     private ArrayList<String>                           order;
     private String                                      sql;
+    private String										primaryKeyField;
     
     public Loader() {
         super();
+    }
+    
+    public Loader(String primaryKeyField ) {
+        super();
+        this.primaryKeyField = primaryKeyField;
     }
     
     public synchronized String getStatement() throws SQLException {
@@ -172,6 +179,15 @@ public class Loader extends AutomatedSql {
         }
     }
     
+    public void prepare(SearchTerm[] terms) throws SQLException {
+        int i = 1;
+        
+        for( Criterion criterion : getCriteria() ) {
+            prepare(criterion.column, i, terms[i].getValue());
+            i++;
+        }
+    }
+    
     public Map<String,Object> run(Transaction xaction, Map<String,Object> params) throws SQLException, PersistenceException {
         ArrayList<Map<String,Object>> list = new ArrayList<Map<String,Object>>(0);
         HashMap<String,Object> map = new HashMap<String,Object>(1);
@@ -215,6 +231,56 @@ public class Loader extends AutomatedSql {
         if( isTranslating() ) {
             for( Map<String,Object> item : list ) {
                 Object key = item.get((String)params.get("--key--"));
+                
+                item.putAll(loadStringTranslations(xaction, getTarget(), key.toString()));
+            }            
+        }
+        return map;
+    }
+    
+    public Map<String,Object> run(Transaction xaction, SearchTerm[] terms) throws SQLException, PersistenceException {
+        ArrayList<Map<String,Object>> list = new ArrayList<Map<String,Object>>(0);
+        HashMap<String,Object> map = new HashMap<String,Object>(1);
+        int count = getColumns().size();
+        long startTimestamp = System.currentTimeMillis();
+        
+        map.put(LISTING, list);
+        prepare(terms);
+        ResultSet results = statement.executeQuery();
+        long queryStopTimestamp = System.currentTimeMillis();
+
+        try {
+            while( results.next() ) {
+                HashMap<String,Object> state = new HashMap<String,Object>(count);
+                
+                for( int i=1; i<=count; i++) {
+                    Object ob = getValue(getColumns().get(i-1), i, results);
+                    
+                    state.put(getColumns().get(i-1), ob);
+                }
+                list.add(state);
+            }
+        }
+        finally {
+            try { results.close(); }
+            catch( SQLException e ) {
+                logger.error("Problem closing results: " + e.getMessage(), e);
+            }
+        }
+
+        long endTimestamp = System.currentTimeMillis();
+
+        if( (endTimestamp - startTimestamp) > (2000L) ) {
+            String queryTime = Long.toString((queryStopTimestamp - startTimestamp));
+            String totalRsTime = Long.toString((endTimestamp - queryStopTimestamp));
+
+            String debugTiming = "[query: "+ queryTime + ",rs: " + totalRsTime+"]";
+
+            logger.warn("SLOW QUERY: " + sql + " "+ debugTiming);
+        }
+        if( isTranslating() ) {
+            for( Map<String,Object> item : list ) {
+                Object key = item.get(primaryKeyField);
                 
                 item.putAll(loadStringTranslations(xaction, getTarget(), key.toString()));
             }            
