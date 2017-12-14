@@ -28,6 +28,7 @@ import java.util.Map;
 import org.dasein.attributes.AttributeMap;
 import org.dasein.attributes.DataType;
 import org.dasein.attributes.DataTypeFactory;
+import org.dasein.attributes.types.StringFactory;
 import org.dasein.persist.Execution;
 import org.dasein.persist.PersistenceException;
 import org.dasein.persist.Transaction;
@@ -202,7 +203,7 @@ public class LoadAttributes extends Execution {
                         list.add(order-1, type.getTranslatedValue(val, loc, curr));
                     }
                     else {
-                        if (val != null) {
+                        if (val != null && !type.getFactory().getTypeName().equals(StringFactory.TYPE_NAME)) {
                             String[] values = val.split(",");
                             if (values.length > 0) {
                                 for (String v : values) {

@@ -181,10 +181,12 @@ public class Loader extends AutomatedSql {
     
     public void prepare(SearchTerm[] terms) throws SQLException {
         int i = 1;
+        int k = 0;
         
         for( Criterion criterion : getCriteria() ) {
-            prepare(criterion.column, i, terms[i].getValue());
+            prepare(criterion.column, i, terms[k].getValue());
             i++;
+            k++;
         }
     }
     

@@ -76,17 +76,17 @@ public class AutomatedSql extends Execution {
 
         public Operator operator = Operator.EQUALS;
 
-        //public Criterion(String col) {
-        //    this(null, col, Operator.EQUALS, 1);
-       // }
+        public Criterion(String col) {
+            this(null, col, Operator.EQUALS, 1);
+        }
         
         public Criterion(String col, int position) {
             this(null, col, Operator.EQUALS, position);
         }
 
-        //public Criterion(String col, Operator oper) {
-         //   this(null, col, oper, 1);
-        //}
+        public Criterion(String col, Operator oper) {
+        	this(null, col, oper, 1);
+        }
         
         public Criterion(String col, Operator oper, int position) {
             this(null, col, oper, position);

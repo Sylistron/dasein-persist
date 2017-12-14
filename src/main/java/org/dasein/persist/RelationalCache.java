@@ -77,17 +77,17 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
     }
     
     private Counter getCounter(SearchTerm[] whereTerms) {
-        final SearchTerm[] terms = whereTerms;
+        final SearchTerm[] counterTerms = whereTerms;
         final RelationalCache<T> self = this;
         
         Counter counter = new Counter() {
             public void init() {
                 setTarget(self.getEntityClassName());
-                if( terms != null && terms.length > 0 ) {
-                    ArrayList<Criterion> criteria = new ArrayList<Criterion>(terms.length);
+                if( counterTerms != null && counterTerms.length > 0 ) {
+                    ArrayList<Criterion> criteria = new ArrayList<Criterion>(counterTerms.length);
                 
                     int i = 1;
-                    for( SearchTerm term : terms ) {
+                    for( SearchTerm term : counterTerms ) {
                         criteria.add(new Criterion(term.getColumn(), term.getOperator(), i));
                         i++;
                     }
@@ -190,11 +190,12 @@ public class RelationalCache<T extends CachedItem> extends PersistentCache<T> {
                     ArrayList<Criterion> criteria = new ArrayList<Criterion>(loaderTerms.length);
                 
                     int i = 1;
-                    for( SearchTerm term : terms ) {
-                        criteria.add(new Criterion(term.getJoinEntity(), term.getColumn(), term.getOperator(), i));
-                        i++;
-                    }
-                    setCriteria(criteria.toArray(new Criterion[criteria.size()]));
+					for (SearchTerm term : loaderTerms) {
+						criteria.add(new Criterion(term.getJoinEntity(),
+								term.getColumn(), term.getOperator(), i));
+						i++;
+					}
+					setCriteria(criteria.toArray(new Criterion[criteria.size()]));
                 }
                 if( order != null && order.length > 0 ) {
                     ArrayList<String> cols = new ArrayList<String>(order.length);
