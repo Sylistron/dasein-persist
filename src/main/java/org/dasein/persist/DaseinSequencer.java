@@ -168,11 +168,7 @@ public class DaseinSequencer extends Sequencer {
     private void create(Connection conn) throws SQLException {
         logger.debug("enter - create()");
         try {
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
-            
-            try {
-                stmt = conn.prepareStatement(CREATE_SEQ);
+            try (PreparedStatement stmt = conn.prepareStatement(CREATE_SEQ)) {
                 stmt.setString(INS_NAME, getName());
                 stmt.setLong(INS_NEXT_KEY, nextKey);
                 stmt.setLong(INS_INTERVAL, interval);
@@ -180,16 +176,6 @@ public class DaseinSequencer extends Sequencer {
                 if( stmt.executeUpdate() != 1 ) {
                     logger.warn("Unable to create sequence " + getName() + ".");
                     sequence = -1L;
-                }
-            }
-            finally {
-                if( rs != null ) {
-                    try { rs.close(); }
-                    catch( SQLException ignore ) { /* ignore */}
-                }
-                if( stmt != null ) {
-                    try { stmt.close(); }
-                    catch( SQLException ignore ) { /* ignore */ }
                 }
             }
         }
@@ -316,82 +302,48 @@ public class DaseinSequencer extends Sequencer {
     private void reseed(Connection conn) throws SQLException {
         logger.debug("enter - reseed()");
         try {
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
-            
-            try {
-                // Keep in this loop as long as we encounter concurrency errors
-                do {
-                    stmt = conn.prepareStatement(FIND_SEQ);
+            // Keep in this loop as long as we encounter concurrency errors
+            do {
+                try (PreparedStatement stmt = conn.prepareStatement(FIND_SEQ)) {
                     stmt.setString(SEL_NAME, getName());
-                    rs = stmt.executeQuery();
-                    if( !rs.next() ) {
-                        logger.info("No sequence in DB for " + getName() + ".");
-                        // no such sequence, create it
-                        {
-                            // close resources
-                            try { rs.close(); }
-                            catch( SQLException ignore ) { /* ignore */ }
-                            rs = null;
-                            try { stmt.close(); }
-                            catch( SQLException ignore ) { /* ignore */ }
-                            stmt = null;
-                        }
-                        sequence = 100L;
-                        nextKey = sequence + interval;
-                        create(conn);
-                    }
-                    else {
-                        long ts;
-                        
-                        sequence = rs.getLong(SEL_NEXT_KEY);
-                        interval = rs.getLong(SEL_INTERVAL);
-                        if( interval < 1 ) {
-                            interval = defaultInterval;
-                        }
-                        nextKey = sequence + interval;
-                        ts = rs.getLong(SEL_UPDATE);
-                        {
-                            // close resources
-                            try { rs.close(); }
-                            catch( SQLException ignore ) { /* ignore */ }
-                            rs = null;
-                            try { stmt.close(); }
-                            catch( SQLException ignore ) { /* ignore */ }
-                            stmt = null;
-                        }
-                        // increment the seed in the database
-                        stmt = conn.prepareStatement(UPDATE_SEQ);
-                        stmt.setLong(UPD_NEXT_KEY, nextKey);
-                        stmt.setLong(UPD_SET_UPDATE, System.currentTimeMillis());
-                        stmt.setString(UPD_NAME, getName());
-                        stmt.setLong(UPD_WHERE_KEY, sequence);
-                        stmt.setLong(UPD_WHERE_UPDATE, ts);
-                        if( stmt.executeUpdate() != 1 ) {
-                            // someone changed the database! try again!
-                            sequence = -1L;
-                            logger.warn("Concurrency error, requerying DB.");
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if( !rs.next() ) {
+                            logger.info("No sequence in DB for " + getName() + ".");
+                            sequence = 100L;
+                            nextKey = sequence + interval;
+                            create(conn);
                         }
                         else {
-                            if( !conn.getAutoCommit() ) {
-                                conn.commit();
+                            long ts;
+
+                            sequence = rs.getLong(SEL_NEXT_KEY);
+                            interval = rs.getLong(SEL_INTERVAL);
+                            if( interval < 1 ) {
+                                interval = defaultInterval;
+                            }
+                            nextKey = sequence + interval;
+                            ts = rs.getLong(SEL_UPDATE);
+                            try (PreparedStatement upd = conn.prepareStatement(UPDATE_SEQ)) {
+                                upd.setLong(UPD_NEXT_KEY, nextKey);
+                                upd.setLong(UPD_SET_UPDATE, System.currentTimeMillis());
+                                upd.setString(UPD_NAME, getName());
+                                upd.setLong(UPD_WHERE_KEY, sequence);
+                                upd.setLong(UPD_WHERE_UPDATE, ts);
+                                if( upd.executeUpdate() != 1 ) {
+                                    sequence = -1L;
+                                    logger.warn("Concurrency error, requerying DB.");
+                                } else {
+                                    if( !conn.getAutoCommit() ) {
+                                        conn.commit();
+                                    }
+                                }
                             }
                         }
                     }
-                } while( sequence == -1L );
-                logger.info("Sequence set to " + sequence + ", next_key is " +
-                            nextKey + ".");
-            }
-            finally {
-                if( rs != null ) {
-                    try { rs.close(); }
-                    catch( SQLException ignore ) { /* ignore */ }
                 }
-                if( stmt != null ) {
-                    try { stmt.close(); }
-                    catch( SQLException ignore ) { /* ignore */ }
-                }
-            }   
+            } while( sequence == -1L );
+            logger.info("Sequence set to " + sequence + ", next_key is " +
+                        nextKey + ".");
         }
         finally {
             logger.debug("exit - reseed()");

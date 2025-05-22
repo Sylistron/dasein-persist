@@ -28,11 +28,13 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Date;
-import java.util.EmptyStackException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Properties;
-import java.util.Stack;
+import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -79,7 +81,7 @@ public class Transaction {
     /**
      * Cache of Execution objects to minimize dynamically created SQL
      */
-    static private final Map<String,Stack<Execution>> eventCache = new ConcurrentHashMap<String, Stack<Execution>>(8, 0.9f, 1);
+    static private final Map<String,Deque<Execution>> eventCache = new ConcurrentHashMap<String, Deque<Execution>>(8, 0.9f, 1);
     /**
      * Cache of DataSource instances. JNDI blocks on System properties.
      */
@@ -204,9 +206,9 @@ public class Transaction {
     /**
      * A stack of events that are part of this transaction.
      */
-    private final Stack<Execution> events = new Stack<Execution>();
-    
-    private final Stack<String> statements = new Stack<String>();
+    private final Deque<Execution> events = new ArrayDeque<>();
+
+    private final Deque<String> statements = new ArrayDeque<>();
     /**
      * Marks the time the transaction was opened so it can be closed.
      */
@@ -248,13 +250,13 @@ public class Transaction {
                 logger.warn("Connection not committed, rolling back.");
                 rollback();
             }
-            if( !events.empty() ) {
+            if( !events.isEmpty() ) {
                 state = "CLOSING EVENTS";
                 do {
-                    Execution exec = (Execution)events.pop();
+                    Execution exec = events.pop();
                 
                     try {
-                        Stack<Execution> stack;
+                        Deque<Execution> stack;
                         
                         exec.close();
                         stack = eventCache.get(exec.getClass().getName());
@@ -265,7 +267,7 @@ public class Transaction {
                     catch( Throwable t ) {
                         logger.error(t.getMessage(), t);
                     }
-                } while( !events.empty() );
+                } while( !events.isEmpty() );
             }
             state = "CLOSED";
         }
@@ -368,17 +370,9 @@ public class Transaction {
                 }
                 throw new PersistenceException(e);
             }
-            catch( InstantiationException e ) {
-                String err = "Instantiation exception: " + e.getMessage();
-                if( logger.isDebugEnabled() ) {
-                    logger.error(err, e);
-                } else {
-                    logger.error(err);
-                }
-                throw new PersistenceException(e);
-            }
-            catch( IllegalAccessException e ) {
-                String err = "IllegalAccessException: " + e.getMessage();
+            catch( InstantiationException | IllegalAccessException |
+                   InvocationTargetException | NoSuchMethodException e ) {
+                String err = e.getClass().getSimpleName() + ": " + e.getMessage();
                 if( logger.isDebugEnabled() ) {
                     logger.error(err, e);
                 } else {
@@ -484,7 +478,7 @@ public class Transaction {
             return (HashMap<String,Object>)r;
         }
         else {
-            HashMap<String,Object> tmp = new HashMap<String,Object>();
+            HashMap<String,Object> tmp = new HashMap<>();
             
             tmp.putAll(r);
             return tmp;
@@ -500,23 +494,21 @@ public class Transaction {
         return connection;
     }
 
-    private Execution getEvent(Class<? extends Execution> cls) throws InstantiationException, IllegalAccessException {
-        Stack<Execution> stack = eventCache.get(cls.getName());
+    private Execution getEvent(Class<? extends Execution> cls) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
+        Deque<Execution> stack = eventCache.get(cls.getName());
         Execution event;
         
         if( stack != null ) {
-            // by not checking for empty, we can skip synchronization
-            try { event = stack.pop(); }
-            catch( EmptyStackException e ) { event = null; }
+            event = stack.pollFirst();
             if( event != null ) {
                 return event;
             }
         }
         else {
-            stack = new Stack<Execution>();
+            stack = new ArrayDeque<>();
             eventCache.put(cls.getName(), stack);
         }
-        event = cls.newInstance();
+        event = cls.getDeclaredConstructor().newInstance();
         return event;
     }
     

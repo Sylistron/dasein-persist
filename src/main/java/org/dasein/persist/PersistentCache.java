@@ -89,7 +89,7 @@ public abstract class PersistentCache<T extends CachedItem> {
                     mappers = new SchemaMapper[mclasses.length];
                     for( int i=0; i<mclasses.length; i++ ) {
                         try {
-                            mappers[i] = mclasses[i].newInstance();
+                            mappers[i] = mclasses[i].getDeclaredConstructor().newInstance();
                         }
                         catch( Throwable t ) {
                             throw new PersistenceException(t.getMessage());
@@ -137,7 +137,7 @@ public abstract class PersistentCache<T extends CachedItem> {
                     mappers = new SchemaMapper[mclasses.length];
                     for( int i=0; i<mclasses.length; i++ ) {
                         try {
-                            mappers[i] = mclasses[i].newInstance();
+                            mappers[i] = mclasses[i].getDeclaredConstructor().newInstance();
                         }
                         catch( Throwable t ) {
                             throw new PersistenceException(t.getMessage());
@@ -247,7 +247,7 @@ public abstract class PersistentCache<T extends CachedItem> {
             prop = props.getProperty(propKey);
             if( prop != null ) {
                 try {
-                    cache = (PersistentCache<? extends CachedItem>)Class.forName(prop).newInstance();
+                    cache = (PersistentCache<? extends CachedItem>)Class.forName(prop).getDeclaredConstructor().newInstance();
                     cache.initBase(forClass, alternateEntytName, schemaVersion, mappers, new Key(primaryKey), keys.toArray(new Key[keys.size()]));
                     break;
                 }
@@ -266,7 +266,7 @@ public abstract class PersistentCache<T extends CachedItem> {
                 throw new PersistenceException("No persistent cache implementations defined.");
             }
             try {
-            	cache = (PersistentCache<? extends CachedItem>)Class.forName(prop).newInstance();
+                cache = (PersistentCache<? extends CachedItem>)Class.forName(prop).getDeclaredConstructor().newInstance();
                 cache.initBase(forClass, alternateEntytName, schemaVersion, mappers, new Key(primaryKey), keys.toArray(new Key[keys.size()]));
             }
             catch( Throwable t ) {
@@ -350,7 +350,7 @@ public abstract class PersistentCache<T extends CachedItem> {
                         
                         if( delegate != null ) {
                             try {
-                                lookups.put(field.getName(), delegate.newInstance());
+                                lookups.put(field.getName(), delegate.getDeclaredConstructor().newInstance());
                             }
                             catch( Throwable t ) {
                                 logger.error(t.getMessage(), t);

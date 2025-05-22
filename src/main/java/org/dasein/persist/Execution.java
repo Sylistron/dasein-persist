@@ -28,11 +28,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.lang.reflect.InvocationTargetException;
 
 // J2EE imports
 import javax.naming.NamingException;
@@ -64,9 +65,9 @@ public abstract class Execution {
     /**
      * Cache of execution instances.
      */
-    static private HashMap<String,Stack<Execution>> cache        = new HashMap<String,Stack<Execution>>();
+    static private HashMap<String,Deque<Execution>> cache        = new HashMap<>();
 
-    static private HashMap<String,String>           dataSources  = new HashMap<String,String>();
+    static private HashMap<String,String>           dataSources  = new HashMap<>();
     
     /**
      * Loads the sequencers from the dasein-persistence.properties
@@ -77,7 +78,6 @@ public abstract class Execution {
             
             InputStream is = Sequencer.class.getResourceAsStream(PROPERTIES);
             Properties props = new Properties();
-            Enumeration propenum;
 
             logger.info("Looking up: " + PROPERTIES);
             logger.info("Location:   " + Sequencer.class.getResource(PROPERTIES));
@@ -92,13 +92,10 @@ public abstract class Execution {
                     // todo: 'is' is ignored
                 }
             }
-            propenum = props.propertyNames();
-            while( propenum.hasMoreElements() ) {
-                String nom = (String)propenum.nextElement();
-
-                if( nom.startsWith("dsn.") ) {
+            for (String nom : props.stringPropertyNames()) {
+                if( nom.startsWith("dsn.")) {
                     String dsn = props.getProperty(nom);
-                    
+
                     nom = nom.substring(4);
                     dataSources.put(nom, dsn);
                 }
@@ -157,29 +154,27 @@ public abstract class Execution {
     static public <T extends Execution> T getInstance(Class<T> cls) {
         logger.debug("enter - getInstance()");
         try {
-            Stack<Execution> stack;
+            Deque<Execution> stack;
             
             synchronized( cache ) {
                 if( !cache.containsKey(cls.getName()) ) {
-                    return cls.newInstance();
+                    return cls.getDeclaredConstructor().newInstance();
                 }
                 else {
                     stack = cache.get(cls.getName());
                 }
             }
             synchronized( stack ) {
-                if( stack.empty() ) {
-                    return cls.newInstance();
+                if( stack.isEmpty() ) {
+                    return cls.getDeclaredConstructor().newInstance();
                 }
                 else {
                     return (T)stack.pop();
                 }
             }
         }
-        catch( InstantiationException e ) {
-            throw new RuntimeException(e.getMessage());
-        }
-        catch( IllegalAccessException e ) {
+        catch( InstantiationException | IllegalAccessException |
+                InvocationTargetException | NoSuchMethodException e ) {
             throw new RuntimeException(e.getMessage());
         }
         finally {
@@ -204,11 +199,11 @@ public abstract class Execution {
             }
             try {
                 for( Execution execution : tmp ) {
-                    Stack<Execution> stack;
+                    Deque<Execution> stack;
                     
                     synchronized( cache ) {
                         if( !cache.containsKey(execution.getClass().getName()) ) {
-                            stack = new Stack<Execution>();
+                            stack = new ArrayDeque<>();
                             cache.put(execution.getClass().getName(), stack);
                         }
                         else {
@@ -316,7 +311,7 @@ public abstract class Execution {
             return (HashMap<String,Object>)r;
         }
         else {
-            HashMap<String,Object> tmp = new HashMap<String,Object>();
+            HashMap<String,Object> tmp = new HashMap<>();
             
             tmp.putAll(r);
             return tmp;
@@ -368,7 +363,7 @@ public abstract class Execution {
                     return (HashMap<String,Object>)res;
                 }
                 else {
-                    HashMap<String,Object> tmp = new HashMap<String,Object>();
+                    HashMap<String,Object> tmp = new HashMap<>();
                     
                     tmp.putAll(res);
                     return tmp;
@@ -456,8 +451,8 @@ public abstract class Execution {
     
     @SuppressWarnings("unchecked")
     public Map<String,Translator<String>> loadStringTranslations(Transaction xaction, Class cls, String id) throws PersistenceException, SQLException {
-        Map<String,Object> criteria = new HashMap<String,Object>();
-        Map<String,Translator<String>> map = new HashMap<String,Translator<String>>();
+        Map<String,Object> criteria = new HashMap<>();
+        Map<String,Translator<String>> map = new HashMap<>();
         
         criteria.put("ownerClass", cls);
         criteria.put("ownerId", id);
@@ -472,7 +467,7 @@ public abstract class Execution {
     }
     
     public void removeStringTranslations(Transaction xaction, Class cls, String id) throws PersistenceException, SQLException {
-        Map<String,Object> state = new HashMap<String,Object>();
+        Map<String,Object> state = new HashMap<>();
     
         state.put("ownerClass", cls);
         state.put("ownerId", id);
@@ -502,7 +497,7 @@ public abstract class Execution {
     }
     
     public void saveStringTranslation(Transaction xaction, String cname, String id, String attr, Translator<String> t) throws SQLException, PersistenceException {
-        Map<String,Object> state = new HashMap<String,Object>();
+        Map<String,Object> state = new HashMap<>();
         
         state.put("ownerClass", cname);
         state.put("ownerId", id);

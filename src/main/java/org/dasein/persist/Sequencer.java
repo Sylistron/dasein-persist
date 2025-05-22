@@ -22,7 +22,6 @@ package org.dasein.persist;
 
 // J2SE imports
 import java.io.InputStream;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -85,14 +84,11 @@ public abstract class Sequencer {
         try {
             InputStream is = Sequencer.class.getResourceAsStream(PROPERTIES);
             Properties props = new Properties();
-            Enumeration<?> propenum;
 
             if( is != null ) {
                 props.load(is);
             }
-            propenum = props.propertyNames();
-            while( propenum.hasMoreElements() ) {
-                String nom = (String)propenum.nextElement();
+            for (String nom : props.stringPropertyNames()) {
 
                 if( nom.startsWith("dasein.sequencer.") ) {
                     String[] parts = nom.split("\\.");
@@ -109,7 +105,7 @@ public abstract class Sequencer {
                         else {
                             Sequencer seq;
 
-                            seq = (Sequencer)Class.forName(val).newInstance();
+                            seq = (Sequencer)Class.forName(val).getDeclaredConstructor().newInstance();
                             seq.setName(nom);
                             sequencers.put(nom, seq);
                         }
@@ -151,7 +147,7 @@ public abstract class Sequencer {
                 // redundant due to the non-synchronized calls above done for performance
                 if( !sequencers.containsKey(name) ) {
                     try {
-                        seq = defaultSequencer.newInstance();
+                        seq = defaultSequencer.getDeclaredConstructor().newInstance();
                     }
                     catch( Exception e ) {
                         logger.error(e.getMessage(), e);
