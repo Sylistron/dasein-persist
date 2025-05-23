@@ -86,7 +86,7 @@ public class RiakTestCase extends TestCase {
 
     @After
     @Override
-    public void tearDown() {
+    public void tearDown() throws PersistenceException {
         for (PersistentObject item : cache.list()) {
             cache.remove(null, item);
         }
