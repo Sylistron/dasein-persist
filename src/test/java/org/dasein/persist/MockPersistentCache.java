@@ -73,7 +73,12 @@ public class MockPersistentCache<T extends CachedItem> extends PersistentCache<T
         for (SearchTerm term : terms) {
             Object val = getValue(item, term.getColumn());
             if (term.getOperator() == Operator.LIKE) {
-                if (val == null || !val.toString().contains(String.valueOf(term.getValue()))) {
+                if (val == null) {
+                    return false;
+                }
+                String haystack = val.toString().toLowerCase();
+                String needle = String.valueOf(term.getValue()).toLowerCase();
+                if (!haystack.contains(needle)) {
                     return false;
                 }
             } else {

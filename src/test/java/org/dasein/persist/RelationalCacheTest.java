@@ -25,7 +25,7 @@ public class RelationalCacheTest extends TestCase {
 
     @After
     @Override
-    public void tearDown() {
+    public void tearDown() throws PersistenceException {
         for(PersistentObject obj : cache.list()) {
             cache.remove(null, obj);
         }
